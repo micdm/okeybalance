@@ -1,9 +1,5 @@
 package com.micdm.okeybalance.content;
 
-import com.micdm.okeybalance.exceptions.AuthRequiredException;
-import com.micdm.okeybalance.exceptions.ServerUnavailableException;
-
-import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;

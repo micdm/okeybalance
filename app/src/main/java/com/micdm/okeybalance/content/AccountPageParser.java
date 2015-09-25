@@ -2,7 +2,6 @@ package com.micdm.okeybalance.content;
 
 import com.micdm.okeybalance.exceptions.AuthRequiredException;
 
-import java.math.BigDecimal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
