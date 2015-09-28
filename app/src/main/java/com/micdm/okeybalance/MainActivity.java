@@ -13,7 +13,8 @@ import com.micdm.okeybalance.events.LoginEvent;
 import com.micdm.okeybalance.events.LoginFailedEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
 import com.micdm.okeybalance.events.RequestLoginEvent;
-import com.micdm.okeybalance.exceptions.AuthRequiredException;
+import com.micdm.okeybalance.events.RequireLoginEvent;
+import com.micdm.okeybalance.exceptions.WrongCredentialsException;
 import com.micdm.okeybalance.exceptions.ServerUnavailableException;
 import com.micdm.okeybalance.fragments.BalanceFragment;
 import com.micdm.okeybalance.fragments.LoginFragment;
@@ -28,31 +29,42 @@ import rx.subscriptions.CompositeSubscription;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final CompositeSubscription subscriptions = new CompositeSubscription();
+    protected final CompositeSubscription subscriptions = new CompositeSubscription();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.a__main);
         subscribeForEvents();
-        showFragment(LoginFragment.newInstance());
+        init();
     }
 
-    private void showFragment(Fragment fragment) {
+    protected void showFragment(Fragment fragment) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         transaction.replace(R.id.a__main__fragment, fragment);
         transaction.addToBackStack(null);
         transaction.commit();
     }
 
-    private void subscribeForEvents() {
+    protected void subscribeForEvents() {
         EventBus eventBus = Application.getEventBus();
+        subscriptions.add(subscribeForRequireLoginEvent(eventBus));
         subscriptions.add(subscribeForRequestLoginEvent(eventBus));
         subscriptions.add(subscribeForLoginEvent(eventBus));
         subscriptions.add(subscribeForRequestBalanceEvent(eventBus));
     }
 
-    private Subscription subscribeForRequestLoginEvent(final EventBus eventBus) {
+    protected Subscription subscribeForRequireLoginEvent(final EventBus eventBus) {
+        return eventBus.getEventObservable(RequireLoginEvent.class)
+            .subscribe(new Action1<Event>() {
+                @Override
+                public void call(Event event) {
+                    showFragment(LoginFragment.newInstance());
+                }
+            });
+    }
+
+    protected Subscription subscribeForRequestLoginEvent(final EventBus eventBus) {
         return eventBus.getEventObservable(RequestLoginEvent.class)
             .observeOn(Schedulers.io())
             .map(new Func1<Event, Event>() {
@@ -65,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
                         return new LoginEvent(cardNumber, password);
                     } catch (ServerUnavailableException e) {
                         return new LoginFailedEvent(LoginFailedEvent.Reasons.SERVER_UNAVAILABLE);
-                    } catch (AuthRequiredException e) {
+                    } catch (WrongCredentialsException e) {
                         return new LoginFailedEvent(LoginFailedEvent.Reasons.WRONG_CREDENTIALS);
                     }
                 }
@@ -79,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
             });
     }
 
-    private Subscription subscribeForLoginEvent(final EventBus eventBus) {
+    protected Subscription subscribeForLoginEvent(final EventBus eventBus) {
         return eventBus.getEventObservable(LoginEvent.class)
             .subscribe(new Action1<Event>() {
                 @Override
@@ -91,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
             });
     }
 
-    private Subscription subscribeForRequestBalanceEvent(final EventBus eventBus) {
+    protected Subscription subscribeForRequestBalanceEvent(final EventBus eventBus) {
         return eventBus.getEventObservable(RequestBalanceEvent.class)
             .observeOn(Schedulers.io())
             .map(new Func1<Event, Event>() {
@@ -103,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                         return new BalanceEvent(balance);
                     } catch (ServerUnavailableException e) {
                         return new LoginFailedEvent(LoginFailedEvent.Reasons.SERVER_UNAVAILABLE);
-                    } catch (AuthRequiredException e) {
+                    } catch (WrongCredentialsException e) {
                         return new LoginFailedEvent(LoginFailedEvent.Reasons.WRONG_CREDENTIALS);
                     }
                 }
@@ -115,6 +127,16 @@ public class MainActivity extends AppCompatActivity {
                     eventBus.send(event);
                 }
             });
+    }
+
+    protected void init() {
+        EventBus eventBus = Application.getEventBus();
+        CredentialStore.Credentials credentials = CredentialStore.get(this);
+        if (credentials == null) {
+            eventBus.send(new RequireLoginEvent());
+        } else {
+            eventBus.send(new LoginEvent(credentials.cardNumber, credentials.password));
+        }
     }
 
     @Override

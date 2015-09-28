@@ -31,14 +31,14 @@ public class BalanceFragment extends Fragment {
         return new BalanceFragment();
     }
 
-    private final CompositeSubscription subscriptions = new CompositeSubscription();
+    protected final CompositeSubscription subscriptions = new CompositeSubscription();
 
     @Bind(R.id.f__balance__balance)
     protected TextView balanceView;
     @Bind(R.id.f__balance__container)
     protected View reloadView;
     @Bind(R.id.f__balance__tip)
-    protected View tipView;
+    protected TextView tipView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -52,7 +52,7 @@ public class BalanceFragment extends Fragment {
         return view;
     }
 
-    private Subscription subscribeForReload() {
+    protected Subscription subscribeForReload() {
         return RxView.clicks(reloadView)
             .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
             .subscribe(new Action1<Object>() {
@@ -63,18 +63,18 @@ public class BalanceFragment extends Fragment {
             });
     }
 
-    private Subscription subscribeForRequestBalanceEvent() {
+    protected Subscription subscribeForRequestBalanceEvent() {
         return Application.getEventBus().getEventObservable(RequestBalanceEvent.class)
-            .map(new Func1<Event, Boolean>() {
+            .map(new Func1<Event, String>() {
                 @Override
-                public Boolean call(Event event) {
-                    return false;
+                public String call(Event event) {
+                    return getString(R.string.f__balance__reloading);
                 }
             })
-            .subscribe(RxView.visibility(tipView));
+            .subscribe(RxTextView.text(tipView));
     }
 
-    private Subscription subscribeForBalanceEvent() {
+    protected Subscription subscribeForBalanceEvent() {
         Observable<Event> eventObservable = Application.getEventBus().getEventObservable(BalanceEvent.class);
         CompositeSubscription subscription = new CompositeSubscription();
         subscription.add(eventObservable
@@ -86,13 +86,13 @@ public class BalanceFragment extends Fragment {
             })
             .subscribe(RxTextView.text(balanceView)));
         subscription.add(eventObservable
-            .map(new Func1<Event, Boolean>() {
+            .map(new Func1<Event, String>() {
                 @Override
-                public Boolean call(Event event) {
-                    return true;
+                public String call(Event event) {
+                    return getString(R.string.f__balance__press_to_reload);
                 }
             })
-            .subscribe(RxView.visibility(tipView)));
+            .subscribe(RxTextView.text(tipView)));
         return subscription;
     }
 

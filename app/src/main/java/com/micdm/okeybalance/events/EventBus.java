@@ -8,18 +8,14 @@ import rx.subjects.Subject;
 
 public class EventBus {
 
-    private final Subject<Event, Event> subject = PublishSubject.create();
+    protected final Subject<Event, Event> subject = PublishSubject.create();
 
     public void send(Event event) {
         subject.onNext(event);
     }
 
-    public Observable<Event> getObservable() {
-        return subject;
-    }
-
     public Observable<Event> getEventObservable(final Class eventClass) {
-        return getObservable()
+        return subject
             .observeOn(AndroidSchedulers.mainThread())
             .filter(new Func1<Event, Boolean>() {
                 @Override

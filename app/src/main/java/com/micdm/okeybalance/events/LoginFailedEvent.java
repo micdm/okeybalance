@@ -2,7 +2,7 @@ package com.micdm.okeybalance.events;
 
 public class LoginFailedEvent implements Event {
 
-    public static enum Reasons {
+    public enum Reasons {
         SERVER_UNAVAILABLE,
         WRONG_CREDENTIALS,
     }

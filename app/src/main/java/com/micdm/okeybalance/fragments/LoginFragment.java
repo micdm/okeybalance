@@ -32,7 +32,7 @@ public class LoginFragment extends Fragment {
         return new LoginFragment();
     }
 
-    private final CompositeSubscription subscriptions = new CompositeSubscription();
+    protected final CompositeSubscription subscriptions = new CompositeSubscription();
 
     @Bind(R.id.f__login__card_number)
     protected TextView cardNumberView;
@@ -56,7 +56,7 @@ public class LoginFragment extends Fragment {
         return view;
     }
 
-    private Subscription subscribeForChangeText() {
+    protected Subscription subscribeForChangeText() {
         return Observable.merge(RxTextView.textChanges(cardNumberView), RxTextView.textChanges(passwordView))
             .map(new Func1<CharSequence, Boolean>() {
                 @Override
@@ -69,7 +69,7 @@ public class LoginFragment extends Fragment {
             .subscribe(RxView.enabled(submitView));
     }
 
-    private Subscription subscribeForSubmit() {
+    protected Subscription subscribeForSubmit() {
         return RxView.clicks(submitView)
             .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
             .subscribe(new Action1<Object>() {
@@ -83,7 +83,7 @@ public class LoginFragment extends Fragment {
             });
     }
 
-    private Subscription subscribeForRequestLoginEvent() {
+    protected Subscription subscribeForRequestLoginEvent() {
         return Application.getEventBus().getEventObservable(RequestLoginEvent.class)
             .map(new Func1<Event, Boolean>() {
                 @Override
@@ -97,7 +97,7 @@ public class LoginFragment extends Fragment {
             .subscribe();
     }
 
-    private Subscription subscribeForLoginFailedEvent() {
+    protected Subscription subscribeForLoginFailedEvent() {
         Observable<Event> eventObservable = Application.getEventBus().getEventObservable(LoginFailedEvent.class);
         CompositeSubscription subscription = new CompositeSubscription();
         subscription.add(eventObservable
@@ -117,11 +117,11 @@ public class LoginFragment extends Fragment {
                 public String call(Event event) {
                     switch (((LoginFailedEvent) event).reason) {
                         case SERVER_UNAVAILABLE:
-                            return "Сервер недоступен";
+                            return getString(R.string.f__login__server_unavailable_error);
                         case WRONG_CREDENTIALS:
-                            return "Неправильные номер карты или пароль";
+                            return getString(R.string.f__login__wrong_credentials_error);
                         default:
-                            return "Неизвестная ошибка";
+                            return getString(R.string.f__login__unknown_error);
                     }
                 }
             })
@@ -137,7 +137,7 @@ public class LoginFragment extends Fragment {
         return subscription;
     }
 
-    private Subscription subscribeForLoginEvent() {
+    protected Subscription subscribeForLoginEvent() {
         Observable<Event> eventObservable = Application.getEventBus().getEventObservable(LoginEvent.class);
         CompositeSubscription subscription = new CompositeSubscription();
         subscription.add(eventObservable

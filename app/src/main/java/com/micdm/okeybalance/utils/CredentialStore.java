@@ -16,9 +16,9 @@ public class CredentialStore {
         }
     }
 
-    private static final String PREF_NAME = "credentials";
-    private static final String CARD_NUMBER_PREF_KEY = "cardNumber";
-    private static final String PASSWORD_PREF_KEY = "password";
+    protected static final String PREF_NAME = "credentials";
+    protected static final String CARD_NUMBER_PREF_KEY = "cardNumber";
+    protected static final String PASSWORD_PREF_KEY = "password";
 
     public static Credentials get(Context context) {
         SharedPreferences prefs = getPrefs(context);
@@ -34,7 +34,7 @@ public class CredentialStore {
         editor.apply();
     }
 
-    private static SharedPreferences getPrefs(Context context) {
+    protected static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 }

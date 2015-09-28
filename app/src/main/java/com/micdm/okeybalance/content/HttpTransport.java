@@ -14,9 +14,9 @@ import java.util.Map;
 
 public class HttpTransport {
 
-    private static final OkHttpClient client = getClient();
+    protected static final OkHttpClient client = getClient();
 
-    private static OkHttpClient getClient() {
+    protected static OkHttpClient getClient() {
         OkHttpClient client = new OkHttpClient();
         client.setCookieHandler(new CookieManager());
         return client;
@@ -27,7 +27,7 @@ public class HttpTransport {
         return sendRequest(url, body);
     }
 
-    private static RequestBody getRequestBody(Map<String, String> params) {
+    protected static RequestBody getRequestBody(Map<String, String> params) {
         FormEncodingBuilder builder = new FormEncodingBuilder();
         for (Map.Entry<String, String> item: params.entrySet()) {
             builder.add(item.getKey(), item.getValue());
@@ -35,7 +35,7 @@ public class HttpTransport {
         return builder.build();
     }
 
-    private static String sendRequest(URL url, RequestBody body) {
+    protected static String sendRequest(URL url, RequestBody body) {
         Request request = new Request.Builder()
             .url(url)
             .post(body)
