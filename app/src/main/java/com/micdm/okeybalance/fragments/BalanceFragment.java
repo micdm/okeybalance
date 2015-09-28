@@ -21,8 +21,6 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import rx.Observable;
 import rx.Subscription;
-import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.subscriptions.CompositeSubscription;
 
 public class BalanceFragment extends Fragment {
@@ -55,22 +53,14 @@ public class BalanceFragment extends Fragment {
     protected Subscription subscribeForReload() {
         return RxView.clicks(reloadView)
             .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
-            .subscribe(new Action1<Object>() {
-                @Override
-                public void call(Object o) {
-                    Application.getEventBus().send(new RequestBalanceEvent());
-                }
+            .subscribe(o -> {
+                Application.getEventBus().send(new RequestBalanceEvent());
             });
     }
 
     protected Subscription subscribeForRequestBalanceEvent() {
         return Application.getEventBus().getEventObservable(RequestBalanceEvent.class)
-            .map(new Func1<Event, String>() {
-                @Override
-                public String call(Event event) {
-                    return getString(R.string.f__balance__reloading);
-                }
-            })
+            .map(event -> getString(R.string.f__balance__reloading))
             .subscribe(RxTextView.text(tipView));
     }
 
@@ -78,20 +68,10 @@ public class BalanceFragment extends Fragment {
         Observable<Event> eventObservable = Application.getEventBus().getEventObservable(BalanceEvent.class);
         CompositeSubscription subscription = new CompositeSubscription();
         subscription.add(eventObservable
-            .map(new Func1<Event, String>() {
-                @Override
-                public String call(Event event) {
-                    return ((BalanceEvent) event).balance;
-                }
-            })
+            .map(event -> ((BalanceEvent) event).balance)
             .subscribe(RxTextView.text(balanceView)));
         subscription.add(eventObservable
-            .map(new Func1<Event, String>() {
-                @Override
-                public String call(Event event) {
-                    return getString(R.string.f__balance__press_to_reload);
-                }
-            })
+            .map(event -> getString(R.string.f__balance__press_to_reload))
             .subscribe(RxTextView.text(tipView)));
         return subscription;
     }

@@ -22,8 +22,6 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import rx.Observable;
 import rx.Subscription;
-import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.subscriptions.CompositeSubscription;
 
 public class LoginFragment extends Fragment {
@@ -58,12 +56,7 @@ public class LoginFragment extends Fragment {
 
     protected Subscription subscribeForChangeText() {
         return Observable.merge(RxTextView.textChanges(cardNumberView), RxTextView.textChanges(passwordView))
-            .map(new Func1<CharSequence, Boolean>() {
-                @Override
-                public Boolean call(CharSequence charSequence) {
-                    return charSequence.length() != 0;
-                }
-            })
+            .map(charSequence -> charSequence.length() != 0)
             .startWith(false)
             .distinctUntilChanged()
             .subscribe(RxView.enabled(submitView));
@@ -72,25 +65,17 @@ public class LoginFragment extends Fragment {
     protected Subscription subscribeForSubmit() {
         return RxView.clicks(submitView)
             .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
-            .subscribe(new Action1<Object>() {
-                @Override
-                public void call(Object o) {
-                    String cardNumber = cardNumberView.getText().toString();
-                    String password = passwordView.getText().toString();
-                    Event event = new RequestLoginEvent(cardNumber, password);
-                    Application.getEventBus().send(event);
-                }
+            .subscribe(o -> {
+                String cardNumber = cardNumberView.getText().toString();
+                String password = passwordView.getText().toString();
+                Event event = new RequestLoginEvent(cardNumber, password);
+                Application.getEventBus().send(event);
             });
     }
 
     protected Subscription subscribeForRequestLoginEvent() {
         return Application.getEventBus().getEventObservable(RequestLoginEvent.class)
-            .map(new Func1<Event, Boolean>() {
-                @Override
-                public Boolean call(Event event) {
-                    return false;
-                }
-            })
+            .map(event -> false)
             .doOnNext(RxView.enabled(cardNumberView))
             .doOnNext(RxView.enabled(passwordView))
             .doOnNext(RxView.enabled(submitView))
@@ -101,38 +86,25 @@ public class LoginFragment extends Fragment {
         Observable<Event> eventObservable = Application.getEventBus().getEventObservable(LoginFailedEvent.class);
         CompositeSubscription subscription = new CompositeSubscription();
         subscription.add(eventObservable
-            .map(new Func1<Event, Boolean>() {
-                @Override
-                public Boolean call(Event event) {
-                    return true;
-                }
-            })
+            .map(event -> true)
             .doOnNext(RxView.enabled(cardNumberView))
             .doOnNext(RxView.enabled(passwordView))
             .doOnNext(RxView.enabled(submitView))
             .subscribe());
         subscription.add(eventObservable
-            .map(new Func1<Event, String>() {
-                @Override
-                public String call(Event event) {
-                    switch (((LoginFailedEvent) event).reason) {
-                        case SERVER_UNAVAILABLE:
-                            return getString(R.string.f__login__server_unavailable_error);
-                        case WRONG_CREDENTIALS:
-                            return getString(R.string.f__login__wrong_credentials_error);
-                        default:
-                            return getString(R.string.f__login__unknown_error);
-                    }
+            .map(event -> {
+                switch (((LoginFailedEvent) event).reason) {
+                    case SERVER_UNAVAILABLE:
+                        return getString(R.string.f__login__server_unavailable_error);
+                    case WRONG_CREDENTIALS:
+                        return getString(R.string.f__login__wrong_credentials_error);
+                    default:
+                        return getString(R.string.f__login__unknown_error);
                 }
             })
             .subscribe(RxTextView.text(errorView)));
         subscription.add(eventObservable
-            .map(new Func1<Event, Boolean>() {
-                @Override
-                public Boolean call(Event event) {
-                    return true;
-                }
-            })
+            .map(event -> true)
             .subscribe(RxView.visibility(errorView)));
         return subscription;
     }
@@ -141,23 +113,13 @@ public class LoginFragment extends Fragment {
         Observable<Event> eventObservable = Application.getEventBus().getEventObservable(LoginEvent.class);
         CompositeSubscription subscription = new CompositeSubscription();
         subscription.add(eventObservable
-            .map(new Func1<Event, Boolean>() {
-                @Override
-                public Boolean call(Event event) {
-                    return true;
-                }
-            })
+            .map(event -> true)
             .doOnNext(RxView.enabled(cardNumberView))
             .doOnNext(RxView.enabled(passwordView))
             .doOnNext(RxView.enabled(submitView))
             .subscribe());
         subscription.add(eventObservable
-            .map(new Func1<Event, Boolean>() {
-                @Override
-                public Boolean call(Event event) {
-                    return false;
-                }
-            })
+            .map(event -> false)
             .subscribe(RxView.visibility(errorView)));
         return subscription;
     }
