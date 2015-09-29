@@ -12,14 +12,15 @@ import com.jakewharton.rxbinding.widget.RxTextView;
 import com.micdm.okeybalance.Application;
 import com.micdm.okeybalance.R;
 import com.micdm.okeybalance.events.BalanceEvent;
-import com.micdm.okeybalance.events.Event;
+import com.micdm.okeybalance.events.EventBus;
+import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
+import com.micdm.okeybalance.events.StartBalanceRequestEvent;
 
 import java.util.concurrent.TimeUnit;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import rx.Observable;
 import rx.Subscription;
 import rx.subscriptions.CompositeSubscription;
 
@@ -43,37 +44,42 @@ public class BalanceFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.f__balance, container, false);
         ButterKnife.bind(this, view);
-        subscriptions.add(subscribeForReload());
-        subscriptions.add(subscribeForRequestBalanceEvent());
-        subscriptions.add(subscribeForBalanceEvent());
-        Application.getEventBus().send(new RequestBalanceEvent());
+        EventBus eventBus = Application.getEventBus();
+        subscribeForEvents(eventBus);
+        eventBus.send(new RequestBalanceEvent());
         return view;
     }
 
-    protected Subscription subscribeForReload() {
+    protected void subscribeForEvents(EventBus eventBus) {
+        subscriptions.add(subscribeForReload(eventBus));
+        subscriptions.add(subscribeForStartBalanceRequestEvent(eventBus));
+        subscriptions.add(subscribeForFinishBalanceRequestEvent(eventBus));
+        subscriptions.add(subscribeForBalanceEvent(eventBus));
+    }
+
+    protected Subscription subscribeForReload(EventBus eventBus) {
         return RxView.clicks(reloadView)
             .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
-            .subscribe(o -> {
-                Application.getEventBus().send(new RequestBalanceEvent());
-            });
+            .map(o -> new RequestBalanceEvent())
+            .subscribe(eventBus::send);
     }
 
-    protected Subscription subscribeForRequestBalanceEvent() {
-        return Application.getEventBus().getEventObservable(RequestBalanceEvent.class)
-            .map(event -> getString(R.string.f__balance__reloading))
-            .subscribe(RxTextView.text(tipView));
+    protected Subscription subscribeForStartBalanceRequestEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(StartBalanceRequestEvent.class)
+            .map(event -> R.string.f__balance__reloading)
+            .subscribe(RxTextView.textRes(tipView));
     }
 
-    protected Subscription subscribeForBalanceEvent() {
-        Observable<Event> eventObservable = Application.getEventBus().getEventObservable(BalanceEvent.class);
-        CompositeSubscription subscription = new CompositeSubscription();
-        subscription.add(eventObservable
+    protected Subscription subscribeForFinishBalanceRequestEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(FinishBalanceRequestEvent.class)
+            .map(event -> R.string.f__balance__press_to_reload)
+            .subscribe(RxTextView.textRes(tipView));
+    }
+
+    protected Subscription subscribeForBalanceEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(BalanceEvent.class)
             .map(event -> ((BalanceEvent) event).balance)
-            .subscribe(RxTextView.text(balanceView)));
-        subscription.add(eventObservable
-            .map(event -> getString(R.string.f__balance__press_to_reload))
-            .subscribe(RxTextView.text(tipView)));
-        return subscription;
+            .subscribe(RxTextView.text(balanceView));
     }
 
     @Override

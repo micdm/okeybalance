@@ -4,15 +4,21 @@ import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.Toast;
 
 import com.micdm.okeybalance.content.InformationRetriever;
 import com.micdm.okeybalance.events.BalanceEvent;
 import com.micdm.okeybalance.events.EventBus;
+import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
+import com.micdm.okeybalance.events.FinishLoginRequestEvent;
 import com.micdm.okeybalance.events.LoginEvent;
-import com.micdm.okeybalance.events.LoginFailedEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
 import com.micdm.okeybalance.events.RequestLoginEvent;
 import com.micdm.okeybalance.events.RequireLoginEvent;
+import com.micdm.okeybalance.events.ServerUnavailableEvent;
+import com.micdm.okeybalance.events.StartBalanceRequestEvent;
+import com.micdm.okeybalance.events.StartLoginRequestEvent;
+import com.micdm.okeybalance.events.WrongCredentialsEvent;
 import com.micdm.okeybalance.exceptions.ServerUnavailableException;
 import com.micdm.okeybalance.exceptions.WrongCredentialsException;
 import com.micdm.okeybalance.fragments.BalanceFragment;
@@ -47,19 +53,19 @@ public class MainActivity extends AppCompatActivity {
         EventBus eventBus = Application.getEventBus();
         subscriptions.add(subscribeForRequireLoginEvent(eventBus));
         subscriptions.add(subscribeForRequestLoginEvent(eventBus));
+        subscriptions.add(subscribeForServerUnavailableEvent(eventBus));
         subscriptions.add(subscribeForLoginEvent(eventBus));
         subscriptions.add(subscribeForRequestBalanceEvent(eventBus));
     }
 
-    protected Subscription subscribeForRequireLoginEvent(final EventBus eventBus) {
+    protected Subscription subscribeForRequireLoginEvent(EventBus eventBus) {
         return eventBus.getEventObservable(RequireLoginEvent.class)
-            .subscribe(event -> {
-                showFragment(LoginFragment.newInstance());
-            });
+            .subscribe(event -> showFragment(LoginFragment.newInstance()));
     }
 
-    protected Subscription subscribeForRequestLoginEvent(final EventBus eventBus) {
+    protected Subscription subscribeForRequestLoginEvent(EventBus eventBus) {
         return eventBus.getEventObservable(RequestLoginEvent.class)
+            .doOnNext(event -> eventBus.send(new StartLoginRequestEvent()))
             .observeOn(Schedulers.io())
             .map(event -> {
                 try {
@@ -68,26 +74,37 @@ public class MainActivity extends AppCompatActivity {
                     InformationRetriever.getBalance(cardNumber, password);
                     return new LoginEvent(cardNumber, password);
                 } catch (ServerUnavailableException e) {
-                    return new LoginFailedEvent(LoginFailedEvent.Reasons.SERVER_UNAVAILABLE);
+                    return new ServerUnavailableEvent();
                 } catch (WrongCredentialsException e) {
-                    return new LoginFailedEvent(LoginFailedEvent.Reasons.WRONG_CREDENTIALS);
+                    return new WrongCredentialsEvent();
                 }
             })
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(eventBus::send);
-    }
-
-    protected Subscription subscribeForLoginEvent(final EventBus eventBus) {
-        return eventBus.getEventObservable(LoginEvent.class)
             .subscribe(event -> {
-                CredentialStore.Credentials credentials = new CredentialStore.Credentials(((LoginEvent) event).cardNumber, ((LoginEvent) event).password);
-                CredentialStore.put(MainActivity.this, credentials);
-                showFragment(BalanceFragment.newInstance());
+                eventBus.send(new FinishLoginRequestEvent());
+                eventBus.send(event);
             });
     }
 
-    protected Subscription subscribeForRequestBalanceEvent(final EventBus eventBus) {
+    protected Subscription subscribeForServerUnavailableEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(ServerUnavailableEvent.class)
+            .subscribe(event -> Toast.makeText(MainActivity.this, R.string.a__main__server_unavailable_error, Toast.LENGTH_SHORT).show());
+    }
+
+    protected Subscription subscribeForLoginEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(LoginEvent.class)
+            .map(event -> {
+                String cardNumber = ((LoginEvent) event).cardNumber;
+                String password = ((LoginEvent) event).password;
+                return new CredentialStore.Credentials(cardNumber, password);
+            })
+            .doOnNext(credentials -> CredentialStore.put(MainActivity.this, credentials))
+            .subscribe(o -> showFragment(BalanceFragment.newInstance()));
+    }
+
+    protected Subscription subscribeForRequestBalanceEvent(EventBus eventBus) {
         return eventBus.getEventObservable(RequestBalanceEvent.class)
+            .doOnNext(event -> eventBus.send(new StartBalanceRequestEvent()))
             .observeOn(Schedulers.io())
             .map(event -> {
                 try {
@@ -95,13 +112,17 @@ public class MainActivity extends AppCompatActivity {
                     String balance = InformationRetriever.getBalance(credentials.cardNumber, credentials.password);
                     return new BalanceEvent(balance);
                 } catch (ServerUnavailableException e) {
-                    return new LoginFailedEvent(LoginFailedEvent.Reasons.SERVER_UNAVAILABLE);
+                    return new ServerUnavailableEvent();
                 } catch (WrongCredentialsException e) {
-                    return new LoginFailedEvent(LoginFailedEvent.Reasons.WRONG_CREDENTIALS);
+                    CredentialStore.clear(MainActivity.this);
+                    return new RequireLoginEvent();
                 }
             })
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(eventBus::send);
+            .subscribe(event -> {
+                eventBus.send(new FinishBalanceRequestEvent());
+                eventBus.send(event);
+            });
     }
 
     protected void init() {

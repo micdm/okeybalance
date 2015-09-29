@@ -11,10 +11,11 @@ import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
 import com.micdm.okeybalance.Application;
 import com.micdm.okeybalance.R;
-import com.micdm.okeybalance.events.Event;
-import com.micdm.okeybalance.events.LoginEvent;
-import com.micdm.okeybalance.events.LoginFailedEvent;
+import com.micdm.okeybalance.events.EventBus;
+import com.micdm.okeybalance.events.FinishLoginRequestEvent;
 import com.micdm.okeybalance.events.RequestLoginEvent;
+import com.micdm.okeybalance.events.StartLoginRequestEvent;
+import com.micdm.okeybalance.events.WrongCredentialsEvent;
 
 import java.util.concurrent.TimeUnit;
 
@@ -42,86 +43,71 @@ public class LoginFragment extends Fragment {
     protected TextView errorView;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.f__login, container, false);
         ButterKnife.bind(this, view);
-        subscriptions.add(subscribeForChangeText());
-        subscriptions.add(subscribeForSubmit());
-        subscriptions.add(subscribeForRequestLoginEvent());
-        subscriptions.add(subscribeForLoginFailedEvent());
-        subscriptions.add(subscribeForLoginEvent());
+        EventBus eventBus = Application.getEventBus();
+        subscribeForEvents(eventBus);
         return view;
     }
 
+    protected void subscribeForEvents(EventBus eventBus) {
+        subscriptions.add(subscribeForChangeText());
+        subscriptions.add(subscribeForSubmit(eventBus));
+        subscriptions.add(subscribeForStartLoginRequestEvent(eventBus));
+        subscriptions.add(subscribeForFinishLoginRequestEvent(eventBus));
+        subscriptions.add(subscribeForWrongCredentialsEvent(eventBus));
+    }
+
     protected Subscription subscribeForChangeText() {
-        return Observable.merge(RxTextView.textChanges(cardNumberView), RxTextView.textChanges(passwordView))
-            .map(charSequence -> charSequence.length() != 0)
-            .startWith(false)
+        return Observable.combineLatest(isInputValid(cardNumberView), isInputValid(passwordView), (isValid1, isValid2) -> isValid1 && isValid2)
             .distinctUntilChanged()
             .subscribe(RxView.enabled(submitView));
     }
 
-    protected Subscription subscribeForSubmit() {
-        return RxView.clicks(submitView)
-            .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
-            .subscribe(o -> {
-                String cardNumber = cardNumberView.getText().toString();
-                String password = passwordView.getText().toString();
-                Event event = new RequestLoginEvent(cardNumber, password);
-                Application.getEventBus().send(event);
-            });
+    protected Observable<Boolean> isInputValid(TextView view) {
+        return RxTextView.textChanges(view)
+            .map(charSequence -> charSequence.length() != 0)
+            .startWith(false);
     }
 
-    protected Subscription subscribeForRequestLoginEvent() {
-        return Application.getEventBus().getEventObservable(RequestLoginEvent.class)
+    protected Subscription subscribeForSubmit(EventBus eventBus) {
+        return RxView.clicks(submitView)
+            .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
+            .map(o -> {
+                String cardNumber = cardNumberView.getText().toString();
+                String password = passwordView.getText().toString();
+                return new RequestLoginEvent(cardNumber, password);
+            })
+            .subscribe(eventBus::send);
+    }
+
+    protected Subscription subscribeForStartLoginRequestEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(StartLoginRequestEvent.class)
             .map(event -> false)
+            .doOnNext(RxView.enabled(cardNumberView))
+            .doOnNext(RxView.enabled(passwordView))
+            .doOnNext(RxView.enabled(submitView))
+            .doOnNext(RxView.visibility(errorView))
+            .subscribe();
+    }
+
+    protected Subscription subscribeForFinishLoginRequestEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(FinishLoginRequestEvent.class)
+            .map(event -> true)
             .doOnNext(RxView.enabled(cardNumberView))
             .doOnNext(RxView.enabled(passwordView))
             .doOnNext(RxView.enabled(submitView))
             .subscribe();
     }
 
-    protected Subscription subscribeForLoginFailedEvent() {
-        Observable<Event> eventObservable = Application.getEventBus().getEventObservable(LoginFailedEvent.class);
-        CompositeSubscription subscription = new CompositeSubscription();
-        subscription.add(eventObservable
+    protected Subscription subscribeForWrongCredentialsEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(WrongCredentialsEvent.class)
+            .map(event -> R.string.f__login__wrong_credentials_error)
+            .doOnNext(RxTextView.textRes(errorView))
             .map(event -> true)
-            .doOnNext(RxView.enabled(cardNumberView))
-            .doOnNext(RxView.enabled(passwordView))
-            .doOnNext(RxView.enabled(submitView))
-            .subscribe());
-        subscription.add(eventObservable
-            .map(event -> {
-                switch (((LoginFailedEvent) event).reason) {
-                    case SERVER_UNAVAILABLE:
-                        return getString(R.string.f__login__server_unavailable_error);
-                    case WRONG_CREDENTIALS:
-                        return getString(R.string.f__login__wrong_credentials_error);
-                    default:
-                        return getString(R.string.f__login__unknown_error);
-                }
-            })
-            .subscribe(RxTextView.text(errorView)));
-        subscription.add(eventObservable
-            .map(event -> true)
-            .subscribe(RxView.visibility(errorView)));
-        return subscription;
-    }
-
-    protected Subscription subscribeForLoginEvent() {
-        Observable<Event> eventObservable = Application.getEventBus().getEventObservable(LoginEvent.class);
-        CompositeSubscription subscription = new CompositeSubscription();
-        subscription.add(eventObservable
-            .map(event -> true)
-            .doOnNext(RxView.enabled(cardNumberView))
-            .doOnNext(RxView.enabled(passwordView))
-            .doOnNext(RxView.enabled(submitView))
-            .subscribe());
-        subscription.add(eventObservable
-            .map(event -> false)
-            .subscribe(RxView.visibility(errorView)));
-        return subscription;
+            .doOnNext(RxView.visibility(errorView))
+            .subscribe();
     }
 
     @Override

@@ -1,11 +1,10 @@
 <resources>
-    <string name="app_name">Баланс Okey</string>
+    <string name="app_name">Баланс Okeycity</string>
+    <string name="a__main__server_unavailable_error">Сервер недоступен, попробуйте позже</string>
     <string name="f__login__card_number">Номер карты</string>
     <string name="f__login__password">Пароль</string>
     <string name="f__login__submit">Войти</string>
-    <string name="f__login__server_unavailable_error">Сервер недоступен, попробуйте позже</string>
     <string name="f__login__wrong_credentials_error">Введите правильные номер карты и пароль</string>
-    <string name="f__login__unknown_error">Неизвестная ошибка, попробуйте позже</string>
-    <string name="f__balance__press_to_reload">Нажмите, чтобы обновить</string>
+    <string name="f__balance__press_to_reload">Коснитесь, чтобы обновить</string>
     <string name="f__balance__reloading">Обновление…</string>
 </resources>
