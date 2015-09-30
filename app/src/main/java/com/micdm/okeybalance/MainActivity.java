@@ -60,7 +60,8 @@ public class MainActivity extends AppCompatActivity {
 
     protected Subscription subscribeForRequireLoginEvent(EventBus eventBus) {
         return eventBus.getEventObservable(RequireLoginEvent.class)
-            .subscribe(event -> showFragment(LoginFragment.newInstance()));
+            .map(event -> ((RequireLoginEvent) event).cardNumber)
+            .subscribe(cardNumber -> showFragment(LoginFragment.newInstance(cardNumber)));
     }
 
     protected Subscription subscribeForRequestLoginEvent(EventBus eventBus) {
@@ -107,15 +108,15 @@ public class MainActivity extends AppCompatActivity {
             .doOnNext(event -> eventBus.send(new StartBalanceRequestEvent()))
             .observeOn(Schedulers.io())
             .map(event -> {
+                CredentialStore.Credentials credentials = CredentialStore.get(MainActivity.this);
                 try {
-                    CredentialStore.Credentials credentials = CredentialStore.get(MainActivity.this);
                     String balance = InformationRetriever.getBalance(credentials.cardNumber, credentials.password);
                     return new BalanceEvent(balance);
                 } catch (ServerUnavailableException e) {
                     return new ServerUnavailableEvent();
                 } catch (WrongCredentialsException e) {
                     CredentialStore.clear(MainActivity.this);
-                    return new RequireLoginEvent();
+                    return new RequireLoginEvent(credentials.cardNumber);
                 }
             })
             .observeOn(AndroidSchedulers.mainThread())

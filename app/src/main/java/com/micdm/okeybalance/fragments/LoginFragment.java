@@ -27,8 +27,14 @@ import rx.subscriptions.CompositeSubscription;
 
 public class LoginFragment extends Fragment {
 
-    public static LoginFragment newInstance() {
-        return new LoginFragment();
+    private static final String CARD_NUMBER_ARG_KEY = "cardNumber";
+
+    public static LoginFragment newInstance(String cardNumber) {
+        LoginFragment fragment = new LoginFragment();
+        Bundle args = new Bundle(1);
+        args.putString(CARD_NUMBER_ARG_KEY, cardNumber);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     protected final CompositeSubscription subscriptions = new CompositeSubscription();
@@ -46,9 +52,17 @@ public class LoginFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.f__login, container, false);
         ButterKnife.bind(this, view);
+        setupCardNumber();
         EventBus eventBus = Application.getEventBus();
         subscribeForEvents(eventBus);
         return view;
+    }
+
+    protected void setupCardNumber() {
+        String cardNumber = getArguments().getString(CARD_NUMBER_ARG_KEY);
+        if (cardNumber != null) {
+            cardNumberView.setText(cardNumber);
+        }
     }
 
     protected void subscribeForEvents(EventBus eventBus) {
