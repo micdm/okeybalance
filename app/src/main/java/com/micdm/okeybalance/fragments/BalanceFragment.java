@@ -29,7 +29,6 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import rx.Observable;
 import rx.Subscription;
-import rx.functions.Func2;
 import rx.subscriptions.CompositeSubscription;
 
 public class BalanceFragment extends Fragment {
@@ -63,10 +62,16 @@ public class BalanceFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.f__balance, container, false);
         ButterKnife.bind(this, view);
+        setupViews();
         EventBus eventBus = Application.getEventBus();
         subscribeForEvents(eventBus);
         eventBus.send(new RequestBalanceEvent());
         return view;
+    }
+
+    protected void setupViews() {
+        deltaView.setVisibility(View.INVISIBLE);
+        balanceView.setVisibility(View.GONE);
     }
 
     protected void subscribeForEvents(EventBus eventBus) {
@@ -128,21 +133,33 @@ public class BalanceFragment extends Fragment {
 
     protected Subscription subscribeForBalanceEvent(EventBus eventBus) {
         CompositeSubscription subscription = new CompositeSubscription();
+        subscription.add(subscribeForBalance(eventBus));
+        subscription.add(subscribeForBalanceDelta(eventBus));
+        return subscription;
+    }
+
+    protected Subscription subscribeForBalance(EventBus eventBus) {
+        CompositeSubscription subscription = new CompositeSubscription();
         Observable<Event> eventObservable = eventBus.getEventObservable(BalanceEvent.class);
         subscription.add(eventObservable
             .map(event -> ((BalanceEvent) event).balance)
             .map(balance -> getString(R.string.f__balance__balance, balance))
             .subscribe(RxTextView.text(balanceView)));
-        Observable<BigDecimal> deltaObservable = eventObservable
+        subscription.add(eventObservable
+            .map(event -> true)
+            .subscribe(RxView.visibility(balanceView)));
+        return subscription;
+    }
+
+    protected Subscription subscribeForBalanceDelta(EventBus eventBus) {
+        CompositeSubscription subscription = new CompositeSubscription();
+        Observable<BigDecimal> deltaObservable = eventBus.getEventObservable(BalanceEvent.class)
             .map(event -> ((BalanceEvent) event).balance)
-            .scan(null, new Func2<Pair<BigDecimal, BigDecimal>, BigDecimal, Pair<BigDecimal, BigDecimal>> () {
-                @Override
-                public Pair<BigDecimal, BigDecimal> call(Pair<BigDecimal, BigDecimal> pair, BigDecimal balance) {
-                    if (pair == null) {
-                        return new Pair<>(balance, null);
-                    }
-                    return new Pair<>(balance, balance.subtract(pair.first));
+            .scan(null, (Pair<BigDecimal, BigDecimal> pair, BigDecimal balance) -> {
+                if (pair == null) {
+                    return new Pair<>(balance, null);
                 }
+                return new Pair<>(balance, balance.subtract(pair.first));
             })
             .filter(pair -> pair != null)
             .map(pair -> pair.second)
