@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Баланс Okeycity</string>
+    <string name="app_name">Okeycity</string>
     <string name="a__main__server_unavailable_error">Сервер недоступен, попробуйте позже</string>
     <string name="f__login__card_number">Номер карты</string>
     <string name="f__login__password">Пароль</string>

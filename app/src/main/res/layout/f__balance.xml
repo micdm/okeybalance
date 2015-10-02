@@ -10,11 +10,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textStyle="bold"
-        android:textSize="50sp"/>
+        android:textSize="50sp"
+        android:textColor="#fff"/>
     <TextView
         android:id="@+id/f__balance__tip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textStyle="italic"
-        android:textColor="#888"/>
+        android:textColor="#ddd"/>
 </LinearLayout>

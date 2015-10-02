@@ -1,20 +1,25 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
+    android:padding="40dp"
     tools:context="com.micdm.okeybalance.fragments.LoginFragment">
     <EditText
         android:id="@+id/f__login__card_number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#fff"
+        android:padding="10dp"
         android:inputType="number"
         android:hint="@string/f__login__card_number"/>
     <EditText
         android:id="@+id/f__login__password"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#fff"
+        android:padding="10dp"
+        android:layout_marginTop="20dp"
         android:inputType="textPassword"
         android:hint="@string/f__login__password"/>
     <TextView
@@ -29,5 +34,6 @@
         android:id="@+id/f__login__submit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:text="@string/f__login__submit"/>
 </LinearLayout>
