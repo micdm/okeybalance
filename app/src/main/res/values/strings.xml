@@ -7,4 +7,7 @@
     <string name="f__login__wrong_credentials_error">Введите правильные номер карты и пароль</string>
     <string name="f__balance__press_to_reload">Коснитесь, чтобы обновить</string>
     <string name="f__balance__reloading">Обновление…</string>
+    <string name="f__balance__balance">%s₽</string>
+    <string name="f__balance__income">+%s₽</string>
+    <string name="f__balance__outcome">%s₽</string>
 </resources>

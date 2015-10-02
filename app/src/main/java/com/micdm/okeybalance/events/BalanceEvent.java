@@ -1,10 +1,12 @@
 package com.micdm.okeybalance.events;
 
+import java.math.BigDecimal;
+
 public class BalanceEvent implements Event {
 
-    public final String balance;
+    public final BigDecimal balance;
 
-    public BalanceEvent(String balance) {
+    public BalanceEvent(BigDecimal balance) {
         this.balance = balance;
     }
 }

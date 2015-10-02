@@ -6,6 +6,12 @@
     android:gravity="center"
     tools:context="com.micdm.okeybalance.fragments.BalanceFragment">
     <TextView
+        android:id="@+id/f__balance__delta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="30sp"
+        android:visibility="invisible"/>
+    <TextView
         android:id="@+id/f__balance__balance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

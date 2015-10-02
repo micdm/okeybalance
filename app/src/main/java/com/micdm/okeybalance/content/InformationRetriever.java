@@ -1,5 +1,6 @@
 package com.micdm.okeybalance.content;
 
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -11,7 +12,7 @@ public class InformationRetriever {
     protected static final String CARD_NUMBER_FIELD_NAME = "LoginForm[login]";
     protected static final String PASSWORD_FIELD_NAME = "LoginForm[password]";
 
-    public static String getBalance(String cardNumber, String password) {
+    public static BigDecimal getBalance(String cardNumber, String password) {
         String response = HttpTransport.send(getUrl(), getParams(cardNumber, password));
         return AccountPageParser.parse(response);
     }

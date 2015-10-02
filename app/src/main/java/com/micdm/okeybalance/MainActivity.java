@@ -25,6 +25,8 @@ import com.micdm.okeybalance.fragments.BalanceFragment;
 import com.micdm.okeybalance.fragments.LoginFragment;
 import com.micdm.okeybalance.utils.CredentialStore;
 
+import java.math.BigDecimal;
+
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -110,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
             .map(event -> {
                 CredentialStore.Credentials credentials = CredentialStore.get(MainActivity.this);
                 try {
-                    String balance = InformationRetriever.getBalance(credentials.cardNumber, credentials.password);
+                    BigDecimal balance = InformationRetriever.getBalance(credentials.cardNumber, credentials.password);
                     return new BalanceEvent(balance);
                 } catch (ServerUnavailableException e) {
                     return new ServerUnavailableEvent();
