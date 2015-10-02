@@ -34,6 +34,10 @@ public class CredentialStore {
         editor.apply();
     }
 
+    public static boolean isEmpty(Context context) {
+        return get(context) == null;
+    }
+
     public static void clear(Context context) {
         SharedPreferences.Editor editor = getPrefs(context).edit();
         editor.remove(CARD_NUMBER_PREF_KEY);

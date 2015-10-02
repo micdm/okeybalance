@@ -130,11 +130,22 @@ public class MainActivity extends AppCompatActivity {
 
     protected void init() {
         EventBus eventBus = Application.getEventBus();
-        CredentialStore.Credentials credentials = CredentialStore.get(this);
-        if (credentials == null) {
+        if (CredentialStore.isEmpty(this)) {
             eventBus.send(new RequireLoginEvent());
         } else {
+            CredentialStore.Credentials credentials = CredentialStore.get(this);
             eventBus.send(new LoginEvent(credentials.cardNumber, credentials.password));
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (!CredentialStore.isEmpty(this)) {
+            CredentialStore.Credentials credentials = CredentialStore.get(this);
+            CredentialStore.clear(this);
+            Application.getEventBus().send(new RequireLoginEvent(credentials.cardNumber));
+        } else {
+            super.onBackPressed();
         }
     }
 
