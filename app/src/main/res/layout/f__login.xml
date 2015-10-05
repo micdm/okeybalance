@@ -1,39 +1,48 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="40dp"
     tools:context="com.micdm.okeybalance.fragments.LoginFragment">
-    <EditText
-        android:id="@+id/f__login__card_number"
+    <LinearLayout
+        android:id="@+id/f__login__fields"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#fff"
-        android:padding="10dp"
-        android:inputType="number"
-        android:hint="@string/f__login__card_number"/>
-    <EditText
-        android:id="@+id/f__login__password"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#fff"
-        android:padding="10dp"
-        android:layout_marginTop="20dp"
-        android:inputType="textPassword"
-        android:hint="@string/f__login__password"/>
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:paddingLeft="40dp"
+        android:paddingRight="40dp">
+        <EditText
+            android:id="@+id/f__login__card_number"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:inputType="number"
+            android:hint="@string/f__login__card_number"
+            android:background="@drawable/text_field_background"/>
+        <EditText
+            android:id="@+id/f__login__password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"
+            android:inputType="textPassword"
+            android:hint="@string/f__login__password"
+            android:background="@drawable/text_field_background"/>
+    </LinearLayout>
     <TextView
         android:id="@+id/f__login__error"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="10dp"
-        android:textColor="@android:color/holo_red_dark"
+        android:layout_marginTop="20dp"
+        android:layout_below="@id/f__login__fields"
+        android:layout_centerHorizontal="true"
+        android:textColor="#fff"
         android:visibility="gone"/>
     <Button
         android:id="@+id/f__login__submit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_below="@id/f__login__error"
+        android:layout_centerHorizontal="true"
         android:layout_marginTop="10dp"
         android:text="@string/f__login__submit"/>
-</LinearLayout>
+</RelativeLayout>
