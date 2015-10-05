@@ -11,13 +11,12 @@ import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
 import com.micdm.okeybalance.Application;
 import com.micdm.okeybalance.R;
+import com.micdm.okeybalance.events.Event;
 import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishLoginRequestEvent;
 import com.micdm.okeybalance.events.RequestLoginEvent;
 import com.micdm.okeybalance.events.StartLoginRequestEvent;
 import com.micdm.okeybalance.events.WrongCredentialsEvent;
-
-import java.util.concurrent.TimeUnit;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -87,7 +86,6 @@ public class LoginFragment extends Fragment {
 
     protected Subscription subscribeForSubmit(EventBus eventBus) {
         return RxView.clicks(submitView)
-            .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
             .map(o -> {
                 String cardNumber = cardNumberView.getText().toString();
                 String password = passwordView.getText().toString();
@@ -116,12 +114,15 @@ public class LoginFragment extends Fragment {
     }
 
     protected Subscription subscribeForWrongCredentialsEvent(EventBus eventBus) {
-        return eventBus.getEventObservable(WrongCredentialsEvent.class)
-            .map(event -> R.string.f__login__wrong_credentials_error)
-            .doOnNext(RxTextView.textRes(errorView))
-            .map(event -> true)
-            .doOnNext(RxView.visibility(errorView))
-            .subscribe();
+        Observable<Event> eventObservable = eventBus.getEventObservable(WrongCredentialsEvent.class);
+        return new CompositeSubscription(
+            eventObservable
+                .map(event -> R.string.f__login__wrong_credentials_error)
+                .subscribe(RxTextView.textRes(errorView)),
+            eventObservable
+                .map(event -> true)
+                .subscribe(RxView.visibility(errorView))
+        );
     }
 
     @Override

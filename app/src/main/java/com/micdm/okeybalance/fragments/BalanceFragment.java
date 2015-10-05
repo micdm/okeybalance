@@ -21,9 +21,9 @@ import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
 import com.micdm.okeybalance.events.StartBalanceRequestEvent;
+import com.micdm.okeybalance.utils.ObservableFactory;
 
 import java.math.BigDecimal;
-import java.util.concurrent.TimeUnit;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -40,6 +40,8 @@ public class BalanceFragment extends Fragment {
     protected final CompositeSubscription subscriptions = new CompositeSubscription();
     protected Animation incomeAnimation;
     protected Animation outcomeAnimation;
+    protected Pair<Observable<Object>, Observable<Object>> incomeAnimationObservables;
+    protected Pair<Observable<Object>, Observable<Object>> outcomeAnimationObservables;
 
     @Bind(R.id.f__balance__delta)
     protected TextView deltaView;
@@ -55,11 +57,12 @@ public class BalanceFragment extends Fragment {
         super.onAttach(activity);
         incomeAnimation = AnimationUtils.loadAnimation(activity, R.anim.income);
         outcomeAnimation = AnimationUtils.loadAnimation(activity, R.anim.outcome);
+        incomeAnimationObservables = ObservableFactory.getForAnimation(incomeAnimation);
+        outcomeAnimationObservables = ObservableFactory.getForAnimation(outcomeAnimation);
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.f__balance, container, false);
         ButterKnife.bind(this, view);
         setupViews();
@@ -84,76 +87,47 @@ public class BalanceFragment extends Fragment {
 
     protected Subscription subscribeForReload(EventBus eventBus) {
         return RxView.clicks(reloadView)
-            .throttleWithTimeout(300, TimeUnit.MILLISECONDS)
             .map(o -> new RequestBalanceEvent())
             .subscribe(eventBus::send);
     }
 
     protected Subscription subscribeForAnimation() {
-        CompositeSubscription subscription = new CompositeSubscription();
-        Observable<String> incomeAnimationObservable = getAnimationObservable(incomeAnimation);
-        Observable<String> outcomeAnimationObservable = getAnimationObservable(outcomeAnimation);
-        subscription.add(Observable.merge(incomeAnimationObservable, outcomeAnimationObservable)
-            .filter(event -> event.equals("start"))
-            .map(o -> true)
-            .subscribe(RxView.visibility(deltaView)));
-        subscription.add(Observable.merge(incomeAnimationObservable, outcomeAnimationObservable)
-            .filter(event -> event.equals("finish"))
-            .map(o -> false)
-            .subscribe(RxView.visibility(deltaView, View.INVISIBLE)));
-        return subscription;
-    }
-
-    protected Observable<String> getAnimationObservable(Animation animation) {
-        return Observable.create(subscriber -> animation.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-                subscriber.onNext("start");
-            }
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                subscriber.onNext("finish");
-            }
-            @Override
-            public void onAnimationRepeat(Animation animation) {}
-        }));
+        return new CompositeSubscription(
+            Observable.merge(incomeAnimationObservables.first, outcomeAnimationObservables.first)
+                .map(o -> true)
+                .subscribe(RxView.visibility(deltaView)),
+            Observable.merge(incomeAnimationObservables.second, outcomeAnimationObservables.second)
+                .map(o -> false)
+                .subscribe(RxView.visibility(deltaView, View.INVISIBLE)));
     }
 
     protected Subscription subscribeForStartBalanceRequestEvent(EventBus eventBus) {
-        return eventBus.getEventObservable(StartBalanceRequestEvent.class)
-            .map(event -> R.string.f__balance__reloading)
-            .subscribe(RxTextView.textRes(tipView));
+        Observable<Event> eventObservable = eventBus.getEventObservable(StartBalanceRequestEvent.class);
+        return new CompositeSubscription(
+            eventObservable
+                .map(event -> false)
+                .subscribe(RxView.clickable(reloadView)),
+            eventObservable
+                .map(event -> R.string.f__balance__reloading)
+                .subscribe(RxTextView.textRes(tipView))
+        );
     }
 
     protected Subscription subscribeForFinishBalanceRequestEvent(EventBus eventBus) {
-        return eventBus.getEventObservable(FinishBalanceRequestEvent.class)
-            .map(event -> R.string.f__balance__press_to_reload)
-            .subscribe(RxTextView.textRes(tipView));
+        Observable<Event> eventObservable = eventBus.getEventObservable(FinishBalanceRequestEvent.class);
+        return new CompositeSubscription(
+            eventObservable
+                .map(event -> true)
+                .subscribe(RxView.clickable(reloadView)),
+            eventObservable
+                .map(event -> R.string.f__balance__press_to_reload)
+                .subscribe(RxTextView.textRes(tipView))
+        );
     }
 
     protected Subscription subscribeForBalanceEvent(EventBus eventBus) {
-        CompositeSubscription subscription = new CompositeSubscription();
-        subscription.add(subscribeForBalance(eventBus));
-        subscription.add(subscribeForBalanceDelta(eventBus));
-        return subscription;
-    }
-
-    protected Subscription subscribeForBalance(EventBus eventBus) {
-        CompositeSubscription subscription = new CompositeSubscription();
         Observable<Event> eventObservable = eventBus.getEventObservable(BalanceEvent.class);
-        subscription.add(eventObservable
-            .map(event -> ((BalanceEvent) event).balance)
-            .map(balance -> getString(R.string.f__balance__balance, balance))
-            .subscribe(RxTextView.text(balanceView)));
-        subscription.add(eventObservable
-            .map(event -> true)
-            .subscribe(RxView.visibility(balanceView)));
-        return subscription;
-    }
-
-    protected Subscription subscribeForBalanceDelta(EventBus eventBus) {
-        CompositeSubscription subscription = new CompositeSubscription();
-        Observable<BigDecimal> deltaObservable = eventBus.getEventObservable(BalanceEvent.class)
+        Observable<Pair<BigDecimal, BigDecimal>> balanceObservable = eventObservable
             .map(event -> ((BalanceEvent) event).balance)
             .scan(null, (Pair<BigDecimal, BigDecimal> pair, BigDecimal balance) -> {
                 if (pair == null) {
@@ -161,26 +135,34 @@ public class BalanceFragment extends Fragment {
                 }
                 return new Pair<>(balance, balance.subtract(pair.first));
             })
-            .filter(pair -> pair != null)
-            .map(pair -> pair.second)
-            .cache();
-        subscription.add(deltaObservable
-            .filter(delta -> delta != null && delta.compareTo(BigDecimal.ZERO) == 1)
-            .map(delta -> getString(R.string.f__balance__income, delta))
-            .subscribe(delta -> {
-                deltaView.setText(delta);
-                deltaView.setTextColor(getResources().getColor(R.color.income));
-                deltaView.startAnimation(incomeAnimation);
-            }));
-        subscription.add(deltaObservable
-            .filter(delta -> delta != null && delta.compareTo(BigDecimal.ZERO) == -1)
-            .map(delta -> getString(R.string.f__balance__outcome, delta))
-            .subscribe(delta -> {
-                deltaView.setText(delta);
-                deltaView.setTextColor(getResources().getColor(R.color.outcome));
-                deltaView.startAnimation(outcomeAnimation);
-            }));
-        return subscription;
+            .filter(pair -> pair != null);
+        return new CompositeSubscription(
+            eventObservable
+                .map(event -> true)
+                .subscribe(RxView.visibility(balanceView)),
+            balanceObservable
+                .filter(pair -> pair.second != null && pair.second.compareTo(BigDecimal.ZERO) == 1)
+                .flatMap(pair -> {
+                    deltaView.setText(getString(R.string.f__balance__income, pair.second));
+                    deltaView.setTextColor(getResources().getColor(R.color.income));
+                    deltaView.startAnimation(incomeAnimation);
+                    return incomeAnimationObservables.second
+                        .map(state -> getString(R.string.f__balance__balance, pair.first))
+                        .doOnNext(RxTextView.text(balanceView));
+                })
+                .subscribe(),
+            balanceObservable
+                .filter(pair -> pair.second != null && pair.second.compareTo(BigDecimal.ZERO) == -1)
+                .flatMap(pair -> {
+                    deltaView.setText(getString(R.string.f__balance__outcome, pair.second));
+                    deltaView.setTextColor(getResources().getColor(R.color.outcome));
+                    deltaView.startAnimation(outcomeAnimation);
+                    return outcomeAnimationObservables.first
+                        .map(state -> getString(R.string.f__balance__balance, pair.first))
+                        .doOnNext(RxTextView.text(balanceView));
+                })
+                .subscribe()
+        );
     }
 
     @Override
