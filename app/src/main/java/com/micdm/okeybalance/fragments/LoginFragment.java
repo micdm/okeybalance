@@ -36,7 +36,7 @@ public class LoginFragment extends Fragment {
         return fragment;
     }
 
-    protected final CompositeSubscription subscriptions = new CompositeSubscription();
+    protected Subscription subscription;
 
     @Bind(R.id.f__login__card_number)
     protected TextView cardNumberView;
@@ -53,7 +53,7 @@ public class LoginFragment extends Fragment {
         ButterKnife.bind(this, view);
         setupCardNumber();
         EventBus eventBus = Application.getEventBus();
-        subscribeForEvents(eventBus);
+        subscription = subscribeForEvents(eventBus);
         return view;
     }
 
@@ -64,12 +64,14 @@ public class LoginFragment extends Fragment {
         }
     }
 
-    protected void subscribeForEvents(EventBus eventBus) {
-        subscriptions.add(subscribeForChangeText());
-        subscriptions.add(subscribeForSubmit(eventBus));
-        subscriptions.add(subscribeForStartLoginRequestEvent(eventBus));
-        subscriptions.add(subscribeForFinishLoginRequestEvent(eventBus));
-        subscriptions.add(subscribeForWrongCredentialsEvent(eventBus));
+    protected Subscription subscribeForEvents(EventBus eventBus) {
+        return new CompositeSubscription(
+            subscribeForChangeText(),
+            subscribeForSubmit(eventBus),
+            subscribeForStartLoginRequestEvent(eventBus),
+            subscribeForFinishLoginRequestEvent(eventBus),
+            subscribeForWrongCredentialsEvent(eventBus)
+        );
     }
 
     protected Subscription subscribeForChangeText() {
@@ -128,7 +130,9 @@ public class LoginFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        subscriptions.unsubscribe();
+        if (subscription != null) {
+            subscription.unsubscribe();
+        }
         ButterKnife.unbind(this);
     }
 }

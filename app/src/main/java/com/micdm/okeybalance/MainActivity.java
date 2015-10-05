@@ -34,13 +34,13 @@ import rx.subscriptions.CompositeSubscription;
 
 public class MainActivity extends AppCompatActivity {
 
-    protected final CompositeSubscription subscriptions = new CompositeSubscription();
+    protected Subscription subscription;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.a__main);
-        subscribeForEvents();
+        subscribeForEvents(Application.getEventBus());
         init();
     }
 
@@ -51,13 +51,14 @@ public class MainActivity extends AppCompatActivity {
         transaction.commit();
     }
 
-    protected void subscribeForEvents() {
-        EventBus eventBus = Application.getEventBus();
-        subscriptions.add(subscribeForRequireLoginEvent(eventBus));
-        subscriptions.add(subscribeForRequestLoginEvent(eventBus));
-        subscriptions.add(subscribeForServerUnavailableEvent(eventBus));
-        subscriptions.add(subscribeForLoginEvent(eventBus));
-        subscriptions.add(subscribeForRequestBalanceEvent(eventBus));
+    protected Subscription subscribeForEvents(EventBus eventBus) {
+        return new CompositeSubscription(
+            subscribeForRequireLoginEvent(eventBus),
+            subscribeForRequestLoginEvent(eventBus),
+            subscribeForServerUnavailableEvent(eventBus),
+            subscribeForLoginEvent(eventBus),
+            subscribeForRequestBalanceEvent(eventBus)
+        );
     }
 
     protected Subscription subscribeForRequireLoginEvent(EventBus eventBus) {
@@ -96,12 +97,11 @@ public class MainActivity extends AppCompatActivity {
 
     protected Subscription subscribeForLoginEvent(EventBus eventBus) {
         return eventBus.getEventObservable(LoginEvent.class)
-            .map(event -> {
+            .doOnNext(event -> {
                 String cardNumber = ((LoginEvent) event).cardNumber;
                 String password = ((LoginEvent) event).password;
-                return new CredentialStore.Credentials(cardNumber, password);
+                CredentialStore.put(MainActivity.this, cardNumber, password);
             })
-            .doOnNext(credentials -> CredentialStore.put(MainActivity.this, credentials))
             .subscribe(o -> showFragment(BalanceFragment.newInstance()));
     }
 
@@ -110,15 +110,16 @@ public class MainActivity extends AppCompatActivity {
             .doOnNext(event -> eventBus.send(new StartBalanceRequestEvent()))
             .observeOn(Schedulers.io())
             .map(event -> {
-                CredentialStore.Credentials credentials = CredentialStore.get(MainActivity.this);
+                String cardNumber = CredentialStore.getCardNumber(MainActivity.this);
+                String password = CredentialStore.getPassword(MainActivity.this);
                 try {
-                    BigDecimal balance = InformationRetriever.getBalance(credentials.cardNumber, credentials.password);
+                    BigDecimal balance = InformationRetriever.getBalance(cardNumber, password);
                     return new BalanceEvent(balance);
                 } catch (ServerUnavailableException e) {
                     return new ServerUnavailableEvent();
                 } catch (WrongCredentialsException e) {
-                    CredentialStore.clear(MainActivity.this);
-                    return new RequireLoginEvent(credentials.cardNumber);
+                    CredentialStore.clearPassword(MainActivity.this);
+                    return new RequireLoginEvent(cardNumber);
                 }
             })
             .observeOn(AndroidSchedulers.mainThread())
@@ -130,20 +131,23 @@ public class MainActivity extends AppCompatActivity {
 
     protected void init() {
         EventBus eventBus = Application.getEventBus();
-        if (CredentialStore.isEmpty(this)) {
+        String cardNumber = CredentialStore.getCardNumber(this);
+        if (cardNumber == null) {
             eventBus.send(new RequireLoginEvent());
+        } else if (!CredentialStore.hasPassword(this)) {
+            eventBus.send(new RequireLoginEvent(cardNumber));
         } else {
-            CredentialStore.Credentials credentials = CredentialStore.get(this);
-            eventBus.send(new LoginEvent(credentials.cardNumber, credentials.password));
+            String password = CredentialStore.getPassword(this);
+            eventBus.send(new LoginEvent(cardNumber, password));
         }
     }
 
     @Override
     public void onBackPressed() {
-        if (!CredentialStore.isEmpty(this)) {
-            CredentialStore.Credentials credentials = CredentialStore.get(this);
-            CredentialStore.clear(this);
-            Application.getEventBus().send(new RequireLoginEvent(credentials.cardNumber));
+        if (CredentialStore.hasPassword(this)) {
+            CredentialStore.clearPassword(this);
+            String cardNumber = CredentialStore.getCardNumber(this);
+            Application.getEventBus().send(new RequireLoginEvent(cardNumber));
         } else {
             super.onBackPressed();
         }
@@ -152,6 +156,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        subscriptions.unsubscribe();
+        if (subscription != null) {
+            subscription.unsubscribe();
+        }
     }
 }

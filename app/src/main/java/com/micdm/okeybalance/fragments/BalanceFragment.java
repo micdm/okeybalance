@@ -37,7 +37,7 @@ public class BalanceFragment extends Fragment {
         return new BalanceFragment();
     }
 
-    protected final CompositeSubscription subscriptions = new CompositeSubscription();
+    protected Subscription subscription;
     protected Animation incomeAnimation;
     protected Animation outcomeAnimation;
     protected Pair<Observable<Object>, Observable<Object>> incomeAnimationObservables;
@@ -67,7 +67,7 @@ public class BalanceFragment extends Fragment {
         ButterKnife.bind(this, view);
         setupViews();
         EventBus eventBus = Application.getEventBus();
-        subscribeForEvents(eventBus);
+        subscription = subscribeForEvents(eventBus);
         eventBus.send(new RequestBalanceEvent());
         return view;
     }
@@ -77,12 +77,14 @@ public class BalanceFragment extends Fragment {
         balanceView.setVisibility(View.GONE);
     }
 
-    protected void subscribeForEvents(EventBus eventBus) {
-        subscriptions.add(subscribeForReload(eventBus));
-        subscriptions.add(subscribeForAnimation());
-        subscriptions.add(subscribeForStartBalanceRequestEvent(eventBus));
-        subscriptions.add(subscribeForFinishBalanceRequestEvent(eventBus));
-        subscriptions.add(subscribeForBalanceEvent(eventBus));
+    protected Subscription subscribeForEvents(EventBus eventBus) {
+        return new CompositeSubscription(
+            subscribeForReload(eventBus),
+            subscribeForAnimation(),
+            subscribeForStartBalanceRequestEvent(eventBus),
+            subscribeForFinishBalanceRequestEvent(eventBus),
+            subscribeForBalanceEvent(eventBus)
+        );
     }
 
     protected Subscription subscribeForReload(EventBus eventBus) {
@@ -126,8 +128,7 @@ public class BalanceFragment extends Fragment {
     }
 
     protected Subscription subscribeForBalanceEvent(EventBus eventBus) {
-        Observable<Event> eventObservable = eventBus.getEventObservable(BalanceEvent.class);
-        Observable<Pair<BigDecimal, BigDecimal>> balanceObservable = eventObservable
+        Observable<Pair<BigDecimal, BigDecimal>> balanceObservable = eventBus.getEventObservable(BalanceEvent.class)
             .map(event -> ((BalanceEvent) event).balance)
             .scan(null, (Pair<BigDecimal, BigDecimal> pair, BigDecimal balance) -> {
                 if (pair == null) {
@@ -137,9 +138,13 @@ public class BalanceFragment extends Fragment {
             })
             .filter(pair -> pair != null);
         return new CompositeSubscription(
-            eventObservable
-                .map(event -> true)
+            balanceObservable
+                .map(pair -> true)
                 .subscribe(RxView.visibility(balanceView)),
+            balanceObservable
+                .filter(pair -> pair.second == null)
+                .map(pair -> getString(R.string.f__balance__balance, pair.first))
+                .subscribe(RxTextView.text(balanceView)),
             balanceObservable
                 .filter(pair -> pair.second != null && pair.second.compareTo(BigDecimal.ZERO) == 1)
                 .flatMap(pair -> {
@@ -168,7 +173,9 @@ public class BalanceFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        subscriptions.unsubscribe();
+        if (subscription != null) {
+            subscription.unsubscribe();
+        }
         ButterKnife.unbind(this);
     }
 }

@@ -5,42 +5,33 @@ import android.content.SharedPreferences;
 
 public class CredentialStore {
 
-    public static class Credentials {
-
-        public final String cardNumber;
-        public final String password;
-
-        public Credentials(String cardNumber, String password) {
-            this.cardNumber = cardNumber;
-            this.password = password;
-        }
-    }
-
     protected static final String PREF_NAME = "credentials";
     protected static final String CARD_NUMBER_PREF_KEY = "cardNumber";
     protected static final String PASSWORD_PREF_KEY = "password";
 
-    public static Credentials get(Context context) {
+    public static String getCardNumber(Context context) {
         SharedPreferences prefs = getPrefs(context);
-        String cardNumber = prefs.getString(CARD_NUMBER_PREF_KEY, null);
-        String password = prefs.getString(PASSWORD_PREF_KEY, null);
-        return (cardNumber == null || password == null) ? null : new Credentials(cardNumber, password);
+        return prefs.getString(CARD_NUMBER_PREF_KEY, null);
     }
 
-    public static void put(Context context, Credentials credentials) {
+    public static String getPassword(Context context) {
+        SharedPreferences prefs = getPrefs(context);
+        return prefs.getString(PASSWORD_PREF_KEY, null);
+    }
+
+    public static void put(Context context, String cardNumber, String password) {
         SharedPreferences.Editor editor = getPrefs(context).edit();
-        editor.putString(CARD_NUMBER_PREF_KEY, credentials.cardNumber);
-        editor.putString(PASSWORD_PREF_KEY, credentials.password);
+        editor.putString(CARD_NUMBER_PREF_KEY, cardNumber);
+        editor.putString(PASSWORD_PREF_KEY, password);
         editor.apply();
     }
 
-    public static boolean isEmpty(Context context) {
-        return get(context) == null;
+    public static boolean hasPassword(Context context) {
+        return getPassword(context) != null;
     }
 
-    public static void clear(Context context) {
+    public static void clearPassword(Context context) {
         SharedPreferences.Editor editor = getPrefs(context).edit();
-        editor.remove(CARD_NUMBER_PREF_KEY);
         editor.remove(PASSWORD_PREF_KEY);
         editor.apply();
     }
