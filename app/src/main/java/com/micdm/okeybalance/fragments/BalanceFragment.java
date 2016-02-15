@@ -66,7 +66,7 @@ public class BalanceFragment extends Fragment {
         View view = inflater.inflate(R.layout.f__balance, container, false);
         ButterKnife.bind(this, view);
         setupViews();
-        EventBus eventBus = Application.getEventBus();
+        EventBus eventBus = ((Application) getActivity().getApplication()).getEventBus();
         subscription = subscribeForEvents(eventBus);
         eventBus.send(new RequestBalanceEvent());
         return view;

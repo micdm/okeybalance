@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.a__main);
-        subscribeForEvents(Application.getEventBus());
+        subscribeForEvents(((Application) getApplication()).getEventBus());
         init();
     }
 
@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
         transaction.replace(R.id.a__main__fragment, fragment);
         transaction.addToBackStack(null);
         transaction.commit();
+        ((Application) getApplication()).getAnalyticsTracker().trackScreenView(this, fragment.getClass().getSimpleName());
     }
 
     protected Subscription subscribeForEvents(EventBus eventBus) {
@@ -130,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected void init() {
-        EventBus eventBus = Application.getEventBus();
+        EventBus eventBus = ((Application) getApplication()).getEventBus();
         String cardNumber = CredentialStore.getCardNumber(this);
         if (cardNumber == null) {
             eventBus.send(new RequireLoginEvent());
@@ -147,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
         if (CredentialStore.hasPassword(this)) {
             CredentialStore.clearPassword(this);
             String cardNumber = CredentialStore.getCardNumber(this);
-            Application.getEventBus().send(new RequireLoginEvent(cardNumber));
+            ((Application) getApplication()).getEventBus().send(new RequireLoginEvent(cardNumber));
         } else {
             super.onBackPressed();
         }

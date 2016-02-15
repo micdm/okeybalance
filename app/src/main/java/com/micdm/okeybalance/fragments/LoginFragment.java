@@ -52,7 +52,7 @@ public class LoginFragment extends Fragment {
         View view = inflater.inflate(R.layout.f__login, container, false);
         ButterKnife.bind(this, view);
         setupCardNumber();
-        EventBus eventBus = Application.getEventBus();
+        EventBus eventBus = ((Application) getActivity().getApplication()).getEventBus();
         subscription = subscribeForEvents(eventBus);
         return view;
     }
