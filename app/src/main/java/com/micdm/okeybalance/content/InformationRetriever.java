@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class InformationRetriever {
 
-    protected static final String LOGIN_PAGE_URL = "https://m.okeycity.ru/site/login";
+    protected static final String LOGIN_PAGE_URL = "https://okeycity.ru/site/login";
     protected static final String CARD_NUMBER_FIELD_NAME = "LoginForm[login]";
     protected static final String PASSWORD_FIELD_NAME = "LoginForm[password]";
 
