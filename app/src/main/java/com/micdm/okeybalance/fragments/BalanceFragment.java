@@ -20,6 +20,7 @@ import com.micdm.okeybalance.events.BalanceEvent;
 import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
+import com.micdm.okeybalance.events.RequestLogoutEvent;
 import com.micdm.okeybalance.events.StartBalanceRequestEvent;
 import com.micdm.okeybalance.utils.MarketUtils;
 import com.micdm.okeybalance.utils.ObservableFactory;
@@ -46,6 +47,8 @@ public class BalanceFragment extends Fragment {
 
     @Bind(R.id.f__balance__share)
     protected View shareView;
+    @Bind(R.id.f__balance__logout)
+    protected View logoutView;
     @Bind(R.id.f__balance__delta)
     protected TextView deltaView;
     @Bind(R.id.f__balance__balance)
@@ -88,7 +91,8 @@ public class BalanceFragment extends Fragment {
             subscribeForStartBalanceRequestEvent(eventBus),
             subscribeForFinishBalanceRequestEvent(eventBus),
             subscribeForBalanceEvent(eventBus),
-            subscribeForClickShareButton(eventBus)
+            subscribeForClickShareButton(eventBus),
+            subscribeForClickLogoutButton(eventBus)
         );
     }
 
@@ -204,6 +208,11 @@ public class BalanceFragment extends Fragment {
         intent.putExtra(Intent.EXTRA_TEXT, message);
         intent.setType("text/plain");
         startActivity(intent);
+    }
+
+    protected Subscription subscribeForClickLogoutButton(EventBus eventBus) {
+        return RxView.clicks(logoutView)
+            .subscribe(o -> eventBus.send(new RequestLogoutEvent()));
     }
 
     @Override

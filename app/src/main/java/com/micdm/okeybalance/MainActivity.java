@@ -13,6 +13,7 @@ import com.micdm.okeybalance.events.FinishLoginRequestEvent;
 import com.micdm.okeybalance.events.LoginEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
 import com.micdm.okeybalance.events.RequestLoginEvent;
+import com.micdm.okeybalance.events.RequestLogoutEvent;
 import com.micdm.okeybalance.events.RequireLoginEvent;
 import com.micdm.okeybalance.events.ServerUnavailableEvent;
 import com.micdm.okeybalance.events.StartBalanceRequestEvent;
@@ -47,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     protected void showFragment(Fragment fragment) {
         getSupportFragmentManager()
             .beginTransaction()
+            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
             .replace(R.id.a__main__content, fragment)
             .addToBackStack(null)
             .commit();
@@ -60,7 +62,8 @@ public class MainActivity extends AppCompatActivity {
             subscribeForServerUnavailableEvent(eventBus),
             subscribeForLoginEvent(eventBus),
             subscribeForRequestBalanceEvent(eventBus),
-            subscribeForBalanceEvent(eventBus)
+            subscribeForBalanceEvent(eventBus),
+            subscribeForRequestLogoutEvent(eventBus)
         );
     }
 
@@ -139,6 +142,16 @@ public class MainActivity extends AppCompatActivity {
             .subscribe(event -> BalanceStore.put(this, event.balance));
     }
 
+    protected Subscription subscribeForRequestLogoutEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(RequestLogoutEvent.class)
+            .subscribe(event -> {
+                CredentialStore.clearPassword(MainActivity.this);
+                BalanceStore.clear(MainActivity.this);
+                String cardNumber = CredentialStore.getCardNumber(MainActivity.this);
+                eventBus.send(new RequireLoginEvent(cardNumber));
+            });
+    }
+
     protected void init() {
         EventBus eventBus = ((Application) getApplication()).getEventBus();
         String cardNumber = CredentialStore.getCardNumber(this);
@@ -149,17 +162,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             String password = CredentialStore.getPassword(this);
             eventBus.send(new LoginEvent(cardNumber, password));
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (CredentialStore.hasPassword(this)) {
-            CredentialStore.clearPassword(this);
-            String cardNumber = CredentialStore.getCardNumber(this);
-            ((Application) getApplication()).getEventBus().send(new RequireLoginEvent(cardNumber));
-        } else {
-            super.onBackPressed();
         }
     }
 

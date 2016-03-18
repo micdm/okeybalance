@@ -17,9 +17,17 @@ public class BalanceStore {
     }
 
     public static void put(Context context, BigDecimal value) {
-        SharedPreferences.Editor editor = getPrefs(context).edit();
-        editor.putString(VALUE_PREF_KEY, value.toString());
-        editor.apply();
+        getPrefs(context)
+            .edit()
+            .putString(VALUE_PREF_KEY, value.toString())
+            .apply();
+    }
+
+    public static void clear(Context context) {
+        getPrefs(context)
+            .edit()
+            .remove(VALUE_PREF_KEY)
+            .apply();
     }
 
     protected static SharedPreferences getPrefs(Context context) {
