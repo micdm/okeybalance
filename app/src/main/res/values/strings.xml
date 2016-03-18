@@ -5,6 +5,13 @@
     <string name="f__login__password">Пароль</string>
     <string name="f__login__submit">Войти</string>
     <string name="f__login__wrong_credentials_error">Введите правильные номер карты и пароль</string>
+    <string name="f__balance__share">На моей карте Окей %1$s: %2$s</string>
+    <plurals name="f__balance__share_plurals">
+        <item quantity="one">%s рубль</item>
+        <item quantity="few">%s рубля</item>
+        <item quantity="many">%s рублей</item>
+    </plurals>
+    <string name="f__balance__share_empty">На моей карте Окей пусто :( %s</string>
     <string name="f__balance__press_to_reload">Коснитесь, чтобы обновить</string>
     <string name="f__balance__reloading">Обновление…</string>
     <string name="f__balance__balance">%s₽</string>

@@ -1,8 +1,9 @@
 package com.micdm.okeybalance.fragments;
 
 import android.app.Activity;
-import android.app.Fragment;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +21,7 @@ import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
 import com.micdm.okeybalance.events.StartBalanceRequestEvent;
+import com.micdm.okeybalance.utils.MarketUtils;
 import com.micdm.okeybalance.utils.ObservableFactory;
 
 import java.math.BigDecimal;
@@ -42,6 +44,8 @@ public class BalanceFragment extends Fragment {
     protected Pair<Observable<Object>, Observable<Object>> incomeAnimationObservables;
     protected Pair<Observable<Object>, Observable<Object>> outcomeAnimationObservables;
 
+    @Bind(R.id.f__balance__share)
+    protected View shareView;
     @Bind(R.id.f__balance__delta)
     protected TextView deltaView;
     @Bind(R.id.f__balance__balance)
@@ -72,6 +76,7 @@ public class BalanceFragment extends Fragment {
     }
 
     protected void setupViews() {
+        shareView.setVisibility(View.GONE);
         deltaView.setVisibility(View.INVISIBLE);
         balanceView.setVisibility(View.GONE);
     }
@@ -82,7 +87,8 @@ public class BalanceFragment extends Fragment {
             subscribeForAnimation(),
             subscribeForStartBalanceRequestEvent(eventBus),
             subscribeForFinishBalanceRequestEvent(eventBus),
-            subscribeForBalanceEvent(eventBus)
+            subscribeForBalanceEvent(eventBus),
+            subscribeForClickShareButton(eventBus)
         );
     }
 
@@ -139,6 +145,9 @@ public class BalanceFragment extends Fragment {
         return new CompositeSubscription(
             common
                 .map(pair -> true)
+                .subscribe(RxView.visibility(shareView)),
+            common
+                .map(pair -> true)
                 .subscribe(RxView.visibility(balanceView)),
             common
                 .filter(pair -> pair.second == null)
@@ -165,6 +174,36 @@ public class BalanceFragment extends Fragment {
                 })
                 .subscribe()
         );
+    }
+
+    protected Subscription subscribeForClickShareButton(EventBus eventBus) {
+        return Observable
+            .combineLatest(
+                RxView.clicks(shareView).timestamp(),
+                eventBus.getEventObservable(BalanceEvent.class)
+                    .map(event -> event.balance),
+                (timestamp, balance) -> new Pair<>(timestamp, balance)
+            )
+            .distinctUntilChanged(pair -> pair.first)
+            .map(pair -> pair.second)
+            .subscribe(this::shareBalance);
+    }
+
+    protected void shareBalance(BigDecimal balance) {
+        int rounded = balance.setScale(0, BigDecimal.ROUND_HALF_UP).intValue();
+        String message;
+        if (rounded == 0) {
+            message = getString(R.string.f__balance__share_empty,
+                                MarketUtils.getMarketUri(getContext().getPackageName()));
+        } else {
+            message = getString(R.string.f__balance__share,
+                                getResources().getQuantityString(R.plurals.f__balance__share_plurals, rounded, rounded),
+                                MarketUtils.getMarketUri(getContext().getPackageName()));
+        }
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.putExtra(Intent.EXTRA_TEXT, message);
+        intent.setType("text/plain");
+        startActivity(intent);
     }
 
     @Override

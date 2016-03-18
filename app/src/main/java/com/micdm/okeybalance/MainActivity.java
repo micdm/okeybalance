@@ -1,8 +1,7 @@
 package com.micdm.okeybalance;
 
-import android.app.Fragment;
-import android.app.FragmentTransaction;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
@@ -46,10 +45,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected void showFragment(Fragment fragment) {
-        FragmentTransaction transaction = getFragmentManager().beginTransaction();
-        transaction.replace(R.id.a__main__content, fragment);
-        transaction.addToBackStack(null);
-        transaction.commit();
+        getSupportFragmentManager()
+            .beginTransaction()
+            .replace(R.id.a__main__content, fragment)
+            .addToBackStack(null)
+            .commit();
         ((Application) getApplication()).getAnalyticsTracker().trackScreenView(this, fragment.getClass().getSimpleName());
     }
 
