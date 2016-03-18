@@ -1,4 +1,5 @@
 <resources>
+    <string name="a__main__site_uri">okeycity.ru</string>
     <string name="a__main__server_unavailable_error">Сервер недоступен, попробуйте позже</string>
     <string name="f__login__card_number">Номер карты</string>
     <string name="f__login__password">Пароль</string>

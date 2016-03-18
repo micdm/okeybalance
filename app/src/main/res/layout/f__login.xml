@@ -14,19 +14,15 @@
             android:id="@+id/f__login__card_number"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="10dp"
             android:inputType="number"
-            android:hint="@string/f__login__card_number"
-            android:background="@drawable/text_field_background"/>
+            android:hint="@string/f__login__card_number"/>
         <EditText
             android:id="@+id/f__login__password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:padding="10dp"
             android:inputType="textPassword"
-            android:hint="@string/f__login__password"
-            android:background="@drawable/text_field_background"/>
+            android:hint="@string/f__login__password"/>
     </LinearLayout>
     <TextView
         android:id="@+id/f__login__error"
@@ -35,7 +31,6 @@
         android:layout_marginTop="20dp"
         android:layout_below="@id/f__login__fields"
         android:layout_centerHorizontal="true"
-        android:textColor="#fff"
         android:visibility="gone"/>
     <Button
         android:id="@+id/f__login__submit"
@@ -44,5 +39,6 @@
         android:layout_below="@id/f__login__error"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="10dp"
-        android:text="@string/f__login__submit"/>
+        android:text="@string/f__login__submit"
+        style="@style/Widget.AppCompat.Button.Borderless"/>
 </RelativeLayout>

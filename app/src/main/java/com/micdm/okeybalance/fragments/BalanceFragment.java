@@ -148,7 +148,6 @@ public class BalanceFragment extends Fragment {
                 .filter(pair -> pair.second != null && pair.second.compareTo(BigDecimal.ZERO) == 1)
                 .flatMap(pair -> {
                     deltaView.setText(getString(R.string.f__balance__income, pair.second));
-                    deltaView.setTextColor(getResources().getColor(R.color.income));
                     deltaView.startAnimation(incomeAnimation);
                     return incomeAnimationObservables.second
                         .map(state -> getString(R.string.f__balance__balance, pair.first))
@@ -159,7 +158,6 @@ public class BalanceFragment extends Fragment {
                 .filter(pair -> pair.second != null && pair.second.compareTo(BigDecimal.ZERO) == -1)
                 .flatMap(pair -> {
                     deltaView.setText(getString(R.string.f__balance__outcome, pair.second));
-                    deltaView.setTextColor(getResources().getColor(R.color.outcome));
                     deltaView.startAnimation(outcomeAnimation);
                     return outcomeAnimationObservables.first
                         .map(state -> getString(R.string.f__balance__balance, pair.first))

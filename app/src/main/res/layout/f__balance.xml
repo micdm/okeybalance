@@ -14,15 +14,13 @@
             android:id="@+id/f__balance__balance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="50sp"
-            android:textColor="#fff"/>
+            style="@style/TextAppearance.AppCompat.Display3"/>
         <TextView
             android:id="@+id/f__balance__tip"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textStyle="italic"
-            android:textColor="#ddd"/>
+            style="@style/TextAppearance.AppCompat.Body1"/>
     </LinearLayout>
     <TextView
         android:id="@+id/f__balance__delta"
@@ -30,5 +28,5 @@
         android:layout_height="wrap_content"
         android:layout_above="@id/f__balance__balance_container"
         android:layout_centerHorizontal="true"
-        android:textSize="30sp"/>
+        style="@style/TextAppearance.AppCompat.Display1"/>
 </RelativeLayout>

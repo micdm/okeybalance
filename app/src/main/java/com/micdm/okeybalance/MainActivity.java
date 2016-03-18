@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     protected void showFragment(Fragment fragment) {
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
-        transaction.replace(R.id.a__main__fragment, fragment);
+        transaction.replace(R.id.a__main__content, fragment);
         transaction.addToBackStack(null);
         transaction.commit();
         ((Application) getApplication()).getAnalyticsTracker().trackScreenView(this, fragment.getClass().getSimpleName());

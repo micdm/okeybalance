@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="income">#ff94ff92</color>
-    <color name="outcome">#ffff9292</color>
+    <color name="primary">#F44336</color>
+    <color name="primary_dark">#B71C1C</color>
+    <color name="accent">#FFE57F</color>
 </resources>
