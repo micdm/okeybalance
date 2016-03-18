@@ -16,7 +16,6 @@ import com.jakewharton.rxbinding.widget.RxTextView;
 import com.micdm.okeybalance.Application;
 import com.micdm.okeybalance.R;
 import com.micdm.okeybalance.events.BalanceEvent;
-import com.micdm.okeybalance.events.Event;
 import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
@@ -104,32 +103,32 @@ public class BalanceFragment extends Fragment {
     }
 
     protected Subscription subscribeForStartBalanceRequestEvent(EventBus eventBus) {
-        Observable<Event> eventObservable = eventBus.getEventObservable(StartBalanceRequestEvent.class);
+        Observable<StartBalanceRequestEvent> common = eventBus.getEventObservable(StartBalanceRequestEvent.class);
         return new CompositeSubscription(
-            eventObservable
+            common
                 .map(event -> false)
                 .subscribe(RxView.clickable(reloadView)),
-            eventObservable
+            common
                 .map(event -> R.string.f__balance__reloading)
                 .subscribe(RxTextView.textRes(tipView))
         );
     }
 
     protected Subscription subscribeForFinishBalanceRequestEvent(EventBus eventBus) {
-        Observable<Event> eventObservable = eventBus.getEventObservable(FinishBalanceRequestEvent.class);
+        Observable<FinishBalanceRequestEvent> common = eventBus.getEventObservable(FinishBalanceRequestEvent.class);
         return new CompositeSubscription(
-            eventObservable
+            common
                 .map(event -> true)
                 .subscribe(RxView.clickable(reloadView)),
-            eventObservable
+            common
                 .map(event -> R.string.f__balance__press_to_reload)
                 .subscribe(RxTextView.textRes(tipView))
         );
     }
 
     protected Subscription subscribeForBalanceEvent(EventBus eventBus) {
-        Observable<Pair<BigDecimal, BigDecimal>> balanceObservable = eventBus.getEventObservable(BalanceEvent.class)
-            .map(event -> ((BalanceEvent) event).balance)
+        Observable<Pair<BigDecimal, BigDecimal>> common = eventBus.getEventObservable(BalanceEvent.class)
+            .map(event -> event.balance)
             .scan(null, (Pair<BigDecimal, BigDecimal> pair, BigDecimal balance) -> {
                 if (pair == null) {
                     return new Pair<>(balance, null);
@@ -138,14 +137,14 @@ public class BalanceFragment extends Fragment {
             })
             .filter(pair -> pair != null);
         return new CompositeSubscription(
-            balanceObservable
+            common
                 .map(pair -> true)
                 .subscribe(RxView.visibility(balanceView)),
-            balanceObservable
+            common
                 .filter(pair -> pair.second == null)
                 .map(pair -> getString(R.string.f__balance__balance, pair.first))
                 .subscribe(RxTextView.text(balanceView)),
-            balanceObservable
+            common
                 .filter(pair -> pair.second != null && pair.second.compareTo(BigDecimal.ZERO) == 1)
                 .flatMap(pair -> {
                     deltaView.setText(getString(R.string.f__balance__income, pair.second));
@@ -156,7 +155,7 @@ public class BalanceFragment extends Fragment {
                         .doOnNext(RxTextView.text(balanceView));
                 })
                 .subscribe(),
-            balanceObservable
+            common
                 .filter(pair -> pair.second != null && pair.second.compareTo(BigDecimal.ZERO) == -1)
                 .flatMap(pair -> {
                     deltaView.setText(getString(R.string.f__balance__outcome, pair.second));

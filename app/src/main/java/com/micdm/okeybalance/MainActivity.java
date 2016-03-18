@@ -23,6 +23,7 @@ import com.micdm.okeybalance.exceptions.ServerUnavailableException;
 import com.micdm.okeybalance.exceptions.WrongCredentialsException;
 import com.micdm.okeybalance.fragments.BalanceFragment;
 import com.micdm.okeybalance.fragments.LoginFragment;
+import com.micdm.okeybalance.utils.BalanceStore;
 import com.micdm.okeybalance.utils.CredentialStore;
 
 import java.math.BigDecimal;
@@ -58,13 +59,14 @@ public class MainActivity extends AppCompatActivity {
             subscribeForRequestLoginEvent(eventBus),
             subscribeForServerUnavailableEvent(eventBus),
             subscribeForLoginEvent(eventBus),
-            subscribeForRequestBalanceEvent(eventBus)
+            subscribeForRequestBalanceEvent(eventBus),
+            subscribeForBalanceEvent(eventBus)
         );
     }
 
     protected Subscription subscribeForRequireLoginEvent(EventBus eventBus) {
         return eventBus.getEventObservable(RequireLoginEvent.class)
-            .map(event -> ((RequireLoginEvent) event).cardNumber)
+            .map(event -> event.cardNumber)
             .subscribe(cardNumber -> showFragment(LoginFragment.newInstance(cardNumber)));
     }
 
@@ -74,8 +76,8 @@ public class MainActivity extends AppCompatActivity {
             .observeOn(Schedulers.io())
             .map(event -> {
                 try {
-                    String cardNumber = ((RequestLoginEvent) event).cardNumber;
-                    String password = ((RequestLoginEvent) event).password;
+                    String cardNumber = event.cardNumber;
+                    String password = event.password;
                     InformationRetriever.getBalance(cardNumber, password);
                     return new LoginEvent(cardNumber, password);
                 } catch (ServerUnavailableException e) {
@@ -98,17 +100,19 @@ public class MainActivity extends AppCompatActivity {
 
     protected Subscription subscribeForLoginEvent(EventBus eventBus) {
         return eventBus.getEventObservable(LoginEvent.class)
-            .doOnNext(event -> {
-                String cardNumber = ((LoginEvent) event).cardNumber;
-                String password = ((LoginEvent) event).password;
-                CredentialStore.put(MainActivity.this, cardNumber, password);
-            })
+            .doOnNext(event -> CredentialStore.put(MainActivity.this, event.cardNumber, event.password))
             .subscribe(o -> showFragment(BalanceFragment.newInstance()));
     }
 
     protected Subscription subscribeForRequestBalanceEvent(EventBus eventBus) {
         return eventBus.getEventObservable(RequestBalanceEvent.class)
             .doOnNext(event -> eventBus.send(new StartBalanceRequestEvent()))
+            .doOnNext(event -> {
+                BigDecimal balance = BalanceStore.get(this);
+                if (balance != null) {
+                    eventBus.send(new BalanceEvent(balance));
+                }
+            })
             .observeOn(Schedulers.io())
             .map(event -> {
                 String cardNumber = CredentialStore.getCardNumber(MainActivity.this);
@@ -128,6 +132,11 @@ public class MainActivity extends AppCompatActivity {
                 eventBus.send(new FinishBalanceRequestEvent());
                 eventBus.send(event);
             });
+    }
+
+    protected Subscription subscribeForBalanceEvent(EventBus eventBus) {
+        return eventBus.getEventObservable(BalanceEvent.class)
+            .subscribe(event -> BalanceStore.put(this, event.balance));
     }
 
     protected void init() {

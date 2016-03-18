@@ -11,7 +11,6 @@ import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
 import com.micdm.okeybalance.Application;
 import com.micdm.okeybalance.R;
-import com.micdm.okeybalance.events.Event;
 import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishLoginRequestEvent;
 import com.micdm.okeybalance.events.RequestLoginEvent;
@@ -116,12 +115,12 @@ public class LoginFragment extends Fragment {
     }
 
     protected Subscription subscribeForWrongCredentialsEvent(EventBus eventBus) {
-        Observable<Event> eventObservable = eventBus.getEventObservable(WrongCredentialsEvent.class);
+        Observable<WrongCredentialsEvent> common = eventBus.getEventObservable(WrongCredentialsEvent.class);
         return new CompositeSubscription(
-            eventObservable
+            common
                 .map(event -> R.string.f__login__wrong_credentials_error)
                 .subscribe(RxTextView.textRes(errorView)),
-            eventObservable
+            common
                 .map(event -> true)
                 .subscribe(RxView.visibility(errorView))
         );
