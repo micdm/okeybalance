@@ -2,6 +2,7 @@ package com.micdm.okeybalance;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
@@ -46,9 +47,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected void showFragment(Fragment fragment) {
-        getSupportFragmentManager()
-            .beginTransaction()
-            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        if (getSupportFragmentManager().getFragments() != null) {
+            transaction = transaction.setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left);
+        }
+        transaction
             .replace(R.id.a__main__content, fragment)
             .addToBackStack(null)
             .commit();
