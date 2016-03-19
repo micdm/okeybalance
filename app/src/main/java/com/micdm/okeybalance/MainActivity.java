@@ -29,6 +29,7 @@ import com.micdm.okeybalance.utils.CredentialStore;
 
 import java.math.BigDecimal;
 
+import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -105,32 +106,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected Subscription subscribeForLoginEvent(EventBus eventBus) {
-        return eventBus.getEventObservable(LoginEvent.class)
-            .doOnNext(event -> CredentialStore.put(MainActivity.this, event.cardNumber, event.password))
-            .subscribe(o -> showFragment(BalanceFragment.newInstance()));
+        Observable<LoginEvent> common = eventBus.getEventObservable(LoginEvent.class);
+        return new CompositeSubscription(
+            common.subscribe(event -> CredentialStore.put(MainActivity.this, event.cardNumber, event.password)),
+            common.subscribe(event -> showFragment(BalanceFragment.newInstance(event.cardNumber, event.password)))
+        );
     }
 
     protected Subscription subscribeForRequestBalanceEvent(EventBus eventBus) {
         return eventBus.getEventObservable(RequestBalanceEvent.class)
             .doOnNext(event -> eventBus.send(new StartBalanceRequestEvent()))
             .doOnNext(event -> {
-                BigDecimal balance = BalanceStore.get(this);
+                String cardNumber = BalanceStore.getCardNumber(MainActivity.this);
+                if (cardNumber == null || !cardNumber.equals(event.cardNumber)) {
+                    return;
+                }
+                BigDecimal balance = BalanceStore.getBalance(MainActivity.this);
                 if (balance != null) {
-                    eventBus.send(new BalanceEvent(balance));
+                    eventBus.send(new BalanceEvent(cardNumber, balance));
                 }
             })
             .observeOn(Schedulers.io())
             .map(event -> {
-                String cardNumber = CredentialStore.getCardNumber(MainActivity.this);
-                String password = CredentialStore.getPassword(MainActivity.this);
                 try {
-                    BigDecimal balance = InformationRetriever.getBalance(cardNumber, password);
-                    return new BalanceEvent(balance);
+                    BigDecimal balance = InformationRetriever.getBalance(event.cardNumber, event.password);
+                    return new BalanceEvent(event.cardNumber, balance);
                 } catch (ServerUnavailableException e) {
                     return new ServerUnavailableEvent();
                 } catch (WrongCredentialsException e) {
                     CredentialStore.clearPassword(MainActivity.this);
-                    return new RequireLoginEvent(cardNumber);
+                    return new RequireLoginEvent(event.cardNumber);
                 }
             })
             .observeOn(AndroidSchedulers.mainThread())
@@ -142,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
 
     protected Subscription subscribeForBalanceEvent(EventBus eventBus) {
         return eventBus.getEventObservable(BalanceEvent.class)
-            .subscribe(event -> BalanceStore.put(this, event.balance));
+            .subscribe(event -> BalanceStore.put(MainActivity.this, event.cardNumber, event.balance));
     }
 
     protected Subscription subscribeForRequestLogoutEvent(EventBus eventBus) {

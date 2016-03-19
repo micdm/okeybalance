@@ -35,9 +35,8 @@ import rx.subscriptions.CompositeSubscription;
 
 public class BalanceFragment extends Fragment {
 
-    public static BalanceFragment newInstance() {
-        return new BalanceFragment();
-    }
+    protected static final String ARGUMENT_CARD_NUMBER = "card_number";
+    protected static final String ARGUMENT_PASSWORD = "password";
 
     protected Subscription subscription;
     protected Animation incomeAnimation;
@@ -58,6 +57,23 @@ public class BalanceFragment extends Fragment {
     @Bind(R.id.f__balance__tip)
     protected TextView tipView;
 
+    public static Fragment newInstance(String cardNumber, String password) {
+        Bundle args = new Bundle();
+        args.putString(ARGUMENT_CARD_NUMBER, cardNumber);
+        args.putString(ARGUMENT_PASSWORD, password);
+        Fragment fragment = new BalanceFragment();
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    protected String getCardNumber() {
+        return getArguments().getString(ARGUMENT_CARD_NUMBER);
+    }
+
+    protected String getPassword() {
+        return getArguments().getString(ARGUMENT_PASSWORD);
+    }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
@@ -74,7 +90,7 @@ public class BalanceFragment extends Fragment {
         setupViews();
         EventBus eventBus = ((Application) getActivity().getApplication()).getEventBus();
         subscription = subscribeForEvents(eventBus);
-        eventBus.send(new RequestBalanceEvent());
+        eventBus.send(new RequestBalanceEvent(getCardNumber(), getPassword()));
         return view;
     }
 
@@ -86,20 +102,14 @@ public class BalanceFragment extends Fragment {
 
     protected Subscription subscribeForEvents(EventBus eventBus) {
         return new CompositeSubscription(
-            subscribeForReload(eventBus),
             subscribeForAnimation(),
             subscribeForStartBalanceRequestEvent(eventBus),
             subscribeForFinishBalanceRequestEvent(eventBus),
             subscribeForBalanceEvent(eventBus),
+            subscribeForClickReloadButton(eventBus),
             subscribeForClickShareButton(eventBus),
             subscribeForClickLogoutButton(eventBus)
         );
-    }
-
-    protected Subscription subscribeForReload(EventBus eventBus) {
-        return RxView.clicks(reloadView)
-            .map(o -> new RequestBalanceEvent())
-            .subscribe(eventBus::send);
     }
 
     protected Subscription subscribeForAnimation() {
@@ -178,6 +188,12 @@ public class BalanceFragment extends Fragment {
                 })
                 .subscribe()
         );
+    }
+
+    protected Subscription subscribeForClickReloadButton(EventBus eventBus) {
+        return RxView.clicks(reloadView)
+            .map(o -> new RequestBalanceEvent(getCardNumber(), getPassword()))
+            .subscribe(eventBus::send);
     }
 
     protected Subscription subscribeForClickShareButton(EventBus eventBus) {
