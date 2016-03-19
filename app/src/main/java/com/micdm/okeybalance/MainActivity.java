@@ -54,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
         }
         transaction
             .replace(R.id.a__main__content, fragment)
-            .addToBackStack(null)
             .commit();
         ((Application) getApplication()).getAnalyticsTracker().trackScreenView(this, fragment.getClass().getSimpleName());
     }
