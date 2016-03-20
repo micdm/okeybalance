@@ -1,5 +1,6 @@
 package com.micdm.okeybalance.fragments;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -9,13 +10,15 @@ import android.widget.TextView;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
-import com.micdm.okeybalance.Application;
 import com.micdm.okeybalance.R;
 import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishLoginRequestEvent;
+import com.micdm.okeybalance.events.IEventBusKeeper;
 import com.micdm.okeybalance.events.RequestLoginEvent;
 import com.micdm.okeybalance.events.StartLoginRequestEvent;
 import com.micdm.okeybalance.events.WrongCredentialsEvent;
+import com.micdm.okeybalance.utils.analytics.AnalyticsTracker;
+import com.micdm.okeybalance.utils.analytics.IAnalyticsTrackerKeeper;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -36,6 +39,7 @@ public class LoginFragment extends Fragment {
     }
 
     protected Subscription subscription;
+    protected AnalyticsTracker analyticsTracker;
 
     @Bind(R.id.f__login__card_number)
     protected TextView cardNumberView;
@@ -47,11 +51,17 @@ public class LoginFragment extends Fragment {
     protected TextView errorView;
 
     @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        analyticsTracker = ((IAnalyticsTrackerKeeper) getActivity().getApplication()).getAnalyticsTracker();
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.f__login, container, false);
         ButterKnife.bind(this, view);
         setupCardNumber();
-        EventBus eventBus = ((Application) getActivity().getApplication()).getEventBus();
+        EventBus eventBus = ((IEventBusKeeper) getActivity().getApplication()).getEventBus();
         subscription = subscribeForEvents(eventBus);
         return view;
     }
@@ -66,10 +76,10 @@ public class LoginFragment extends Fragment {
     protected Subscription subscribeForEvents(EventBus eventBus) {
         return new CompositeSubscription(
             subscribeForChangeText(),
-            subscribeForSubmit(eventBus),
             subscribeForStartLoginRequestEvent(eventBus),
             subscribeForFinishLoginRequestEvent(eventBus),
-            subscribeForWrongCredentialsEvent(eventBus)
+            subscribeForWrongCredentialsEvent(eventBus),
+            subscribeForClickSubmitButton(eventBus)
         );
     }
 
@@ -83,16 +93,6 @@ public class LoginFragment extends Fragment {
         return RxTextView.textChanges(view)
             .map(charSequence -> charSequence.length() != 0)
             .startWith(false);
-    }
-
-    protected Subscription subscribeForSubmit(EventBus eventBus) {
-        return RxView.clicks(submitView)
-            .map(o -> {
-                String cardNumber = cardNumberView.getText().toString();
-                String password = passwordView.getText().toString();
-                return new RequestLoginEvent(cardNumber, password);
-            })
-            .subscribe(eventBus::send);
     }
 
     protected Subscription subscribeForStartLoginRequestEvent(EventBus eventBus) {
@@ -124,6 +124,17 @@ public class LoginFragment extends Fragment {
                 .map(event -> true)
                 .subscribe(RxView.visibility(errorView))
         );
+    }
+
+    protected Subscription subscribeForClickSubmitButton(EventBus eventBus) {
+        return RxView.clicks(submitView)
+            .doOnNext(o -> analyticsTracker.trackEvent(getContext(), AnalyticsTracker.CATEGORY_LOGIN, "click", "submit"))
+            .map(o -> {
+                String cardNumber = cardNumberView.getText().toString();
+                String password = passwordView.getText().toString();
+                return new RequestLoginEvent(cardNumber, password);
+            })
+            .subscribe(eventBus::send);
     }
 
     @Override

@@ -14,16 +14,18 @@ import android.widget.TextView;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
-import com.micdm.okeybalance.Application;
 import com.micdm.okeybalance.R;
 import com.micdm.okeybalance.events.BalanceEvent;
 import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
+import com.micdm.okeybalance.events.IEventBusKeeper;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
 import com.micdm.okeybalance.events.RequestLogoutEvent;
 import com.micdm.okeybalance.events.StartBalanceRequestEvent;
 import com.micdm.okeybalance.utils.MarketUtils;
 import com.micdm.okeybalance.utils.ObservableFactory;
+import com.micdm.okeybalance.utils.analytics.AnalyticsTracker;
+import com.micdm.okeybalance.utils.analytics.IAnalyticsTrackerKeeper;
 
 import java.math.BigDecimal;
 
@@ -43,6 +45,7 @@ public class BalanceFragment extends Fragment {
     protected Animation outcomeAnimation;
     protected Pair<Observable<Object>, Observable<Object>> incomeAnimationObservables;
     protected Pair<Observable<Object>, Observable<Object>> outcomeAnimationObservables;
+    protected AnalyticsTracker analyticsTracker;
 
     @Bind(R.id.f__balance__share)
     protected View shareView;
@@ -81,6 +84,7 @@ public class BalanceFragment extends Fragment {
         outcomeAnimation = AnimationUtils.loadAnimation(activity, R.anim.outcome);
         incomeAnimationObservables = ObservableFactory.getForAnimation(incomeAnimation);
         outcomeAnimationObservables = ObservableFactory.getForAnimation(outcomeAnimation);
+        analyticsTracker = ((IAnalyticsTrackerKeeper) getActivity().getApplication()).getAnalyticsTracker();
     }
 
     @Override
@@ -88,7 +92,7 @@ public class BalanceFragment extends Fragment {
         View view = inflater.inflate(R.layout.f__balance, container, false);
         ButterKnife.bind(this, view);
         setupViews();
-        EventBus eventBus = ((Application) getActivity().getApplication()).getEventBus();
+        EventBus eventBus = ((IEventBusKeeper) getActivity().getApplication()).getEventBus();
         subscription = subscribeForEvents(eventBus);
         eventBus.send(new RequestBalanceEvent(getCardNumber(), getPassword()));
         return view;
@@ -192,8 +196,8 @@ public class BalanceFragment extends Fragment {
 
     protected Subscription subscribeForClickReloadButton(EventBus eventBus) {
         return RxView.clicks(reloadView)
-            .map(o -> new RequestBalanceEvent(getCardNumber(), getPassword()))
-            .subscribe(eventBus::send);
+            .doOnNext(o -> analyticsTracker.trackEvent(getContext(), AnalyticsTracker.CATEGORY_BALANCE, "click", "reload"))
+            .subscribe(o -> eventBus.send(new RequestBalanceEvent(getCardNumber(), getPassword())));
     }
 
     protected Subscription subscribeForClickShareButton(EventBus eventBus) {
@@ -206,6 +210,7 @@ public class BalanceFragment extends Fragment {
             )
             .distinctUntilChanged(pair -> pair.first)
             .map(pair -> pair.second)
+            .doOnNext(o -> analyticsTracker.trackEvent(getContext(), AnalyticsTracker.CATEGORY_BALANCE, "click", "share"))
             .subscribe(this::shareBalance);
     }
 
@@ -228,6 +233,7 @@ public class BalanceFragment extends Fragment {
 
     protected Subscription subscribeForClickLogoutButton(EventBus eventBus) {
         return RxView.clicks(logoutView)
+            .doOnNext(o -> analyticsTracker.trackEvent(getContext(), AnalyticsTracker.CATEGORY_BALANCE, "click", "logout"))
             .subscribe(o -> eventBus.send(new RequestLogoutEvent()));
     }
 

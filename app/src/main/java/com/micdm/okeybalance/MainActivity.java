@@ -11,6 +11,7 @@ import com.micdm.okeybalance.events.BalanceEvent;
 import com.micdm.okeybalance.events.EventBus;
 import com.micdm.okeybalance.events.FinishBalanceRequestEvent;
 import com.micdm.okeybalance.events.FinishLoginRequestEvent;
+import com.micdm.okeybalance.events.IEventBusKeeper;
 import com.micdm.okeybalance.events.LoginEvent;
 import com.micdm.okeybalance.events.RequestBalanceEvent;
 import com.micdm.okeybalance.events.RequestLoginEvent;
@@ -26,6 +27,7 @@ import com.micdm.okeybalance.fragments.BalanceFragment;
 import com.micdm.okeybalance.fragments.LoginFragment;
 import com.micdm.okeybalance.utils.BalanceStore;
 import com.micdm.okeybalance.utils.CredentialStore;
+import com.micdm.okeybalance.utils.analytics.IAnalyticsTrackerKeeper;
 
 import java.math.BigDecimal;
 
@@ -43,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.a__main);
-        subscribeForEvents(((Application) getApplication()).getEventBus());
+        subscribeForEvents(((IEventBusKeeper) getApplication()).getEventBus());
         init();
     }
 
@@ -55,11 +57,11 @@ public class MainActivity extends AppCompatActivity {
         transaction
             .replace(R.id.a__main__content, fragment)
             .commit();
-        ((Application) getApplication()).getAnalyticsTracker().trackScreenView(this, fragment.getClass().getSimpleName());
+        ((IAnalyticsTrackerKeeper) getApplication()).getAnalyticsTracker().trackScreenView(this, fragment.getClass().getSimpleName());
     }
 
-    protected Subscription subscribeForEvents(EventBus eventBus) {
-        return new CompositeSubscription(
+    protected void subscribeForEvents(EventBus eventBus) {
+        subscription = new CompositeSubscription(
             subscribeForRequireLoginEvent(eventBus),
             subscribeForRequestLoginEvent(eventBus),
             subscribeForServerUnavailableEvent(eventBus),
@@ -160,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected void init() {
-        EventBus eventBus = ((Application) getApplication()).getEventBus();
+        EventBus eventBus = ((IEventBusKeeper) getApplication()).getEventBus();
         String cardNumber = CredentialStore.getCardNumber(this);
         if (cardNumber == null) {
             eventBus.send(new RequireLoginEvent());
