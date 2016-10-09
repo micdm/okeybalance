@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 public class AccountPageParser {
 
-    protected static final Pattern pattern = Pattern.compile("<span class=\"lkuibalance\">([\\d\\. ]+) р.</span>");
+    protected static final Pattern pattern = Pattern.compile("<span class=\"lkuibalance\">([\\d\\. ]+) б.</span>");
 
     public static BigDecimal parse(String content) throws WrongCredentialsException {
         Matcher matcher = pattern.matcher(content);
